@@ -5,6 +5,7 @@ app = Flask(__name__)
 
 led = 17
 
+
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(led, GPIO.OUT, initial=GPIO.LOW)
