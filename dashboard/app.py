@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO, emit
 import threading
 import random
@@ -6,7 +6,7 @@ import Freenove_DHT as DHT
 import RPi.GPIO as GPIO
 from time import sleep
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='/dashboard/templates/static', static_url_path="/dashboard/templates")
 socketio = SocketIO(app)
 
 # Assume we have 3 sensors
@@ -57,11 +57,21 @@ def handle_message(data):
 def handle_disconnect(host_connection):
     print('Connection Lost: ' + host_connection)
     socketio.send('Disconnected from server!')
-    
+
+@app.route('/')
+def dashboard():
+    return render_template('dashboard.html')
+
+@app.route('/templates/<path:path>')
+def send_report(path):
+    return send_from_directory('templates', path)
+
 if __name__ == '__main__':
     for i in len(sensor_pins):
         threading.Thread(target=sensor_reader, args=(i,)).start()
     socketio.run(app, host='0.0.0.0', port=5000)
+
+
     
 def dhtLoop(sensor_index):
     dht = DHT.DHT(sensor_index) #create a DHT class object
