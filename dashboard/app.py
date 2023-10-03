@@ -65,9 +65,6 @@ def handle_disconnect():
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/templates/<path:path>')
-def send_report(path):
-    return send_from_directory('templates', path)
 
 if __name__ == '__main__':
     for i in sensor_pins:
