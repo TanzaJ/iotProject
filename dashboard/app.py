@@ -9,7 +9,8 @@ from time import sleep
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-# Assume we have 3 sensors
+connected_users = {}
+
 sensor_data = [None, None, None]
 
 # Set up GPIO pins
@@ -38,24 +39,26 @@ def read_sensor_data(sensor_index):
 def sensor_reader(sensor_index):
     global sensor_data
     while True:
-        if socketio.connections:
+        if len(connected_users) != 0:
             if sensor_index == sensor_pins[0]:
                 dhtLoop(sensor_index)
             # sensor_data[sensor_index] = read_sensor_data(sensor_index)
             # socketio.emit('sensor_data', {'sensor_index': sensor_index, 'data': sensor_data[sensor_index]})
 
 @socketio.on('connect')
-def handle_connect(host_connection):
+def handle_connect():
+    connected_users[request.sid] = 'User connected'
     print('Successfully connected to: ' + host_connection)
     socketio.send('Connected to server!')
         
-@socketio.on('message')
-def handle_message(data):
-    print('Received message: ' + data)
+# @socketio.on('message')
+# def handle_message():
+#     print('Received message: ' + data)
 
 @socketio.on('disconnect')
-def handle_disconnect(host_connection):
-    print('Connection Lost: ' + host_connection)
+def handle_disconnect():
+    connected_users.pop(request.sid, None)
+    print('Connection Lost: ' + request.sid)
     socketio.send('Disconnected from server!')
 
 @app.route('/')
