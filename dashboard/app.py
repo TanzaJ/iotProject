@@ -67,7 +67,7 @@ def send_report(path):
     return send_from_directory('templates', path)
 
 if __name__ == '__main__':
-    for i in len(sensor_pins):
+    for i in sensor_pins:
         threading.Thread(target=sensor_reader, args=(i,)).start()
     socketio.run(app, host='0.0.0.0', port=5000)
 
