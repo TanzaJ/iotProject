@@ -6,7 +6,7 @@ import Freenove_DHT as DHT
 import RPi.GPIO as GPIO
 from time import sleep
 
-app = Flask(__name__, static_folder='/dashboard/templates/static', static_url_path="/dashboard/templates")
+app = Flask(__name__)
 socketio = SocketIO(app)
 
 # Assume we have 3 sensors
