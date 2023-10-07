@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap"
+        rel="stylesheet">
+    <script src="pureknob.js"></script>
+</head>
+
+<body>
+    <div class="container" id="profile">
+
+        <div class="container" id="profileDiv1">
+
+            <img src="images/profilepic.png" id="profilepic">
+
+        </div>
+
+        <div class="container" id="profileDiv2">
+
+            <h5 style="font-style: italic;">Welcome</h5>
+            <h1 style="font-size: 42pt;">&lt;Username&gt;</h1>
+
+        </div>
+
+        <div class="container" id="profileDiv3">
+
+            <h5 style="font-weight: 600;">Saturday, October 7, 2023</h4>
+                <h1 style="font-size: 48pt;">12:12PM</h1>
+
+        </div>
+
+        <div class="container" id="profileDiv4">
+
+            <h5 style="font-style: italic;">Preferences</h5>
+            <form action="" id="preferencesForm">
+                <label for="">
+                    <h5>Temperature</h5>
+                </label>
+                <div>
+                    <input type="text" maxlength="3" value="27">&deg;C
+                </div>
+
+                <label for=""></label>
+                <h5>Humidity</h5></label>
+                <div>
+                    <input type="text" maxlength="3" value="70">%
+                </div>
+                <label for=""></label>
+                <h5>Light Intensity</h5></label>
+                <div>
+                    <input type="text" maxlength="3" value="505">
+                </div>
+                <input id="savePrefsBtn" type="submit" value="Save Preferences">
+            </form>
+
+
+        </div>
+
+    </div>
+
+    <div class="container" id="tempHumFan">
+
+        <div class="container" id="temp">
+
+            <div class="container" id="thermometerGauge"></div>
+
+            <h2>Current<br>Temperature</h2>
+
+        </div>
+
+        <div class="container" id="humidity">
+
+            <div class="container" id="humidityGauge"></div>
+
+            <h2 style="color: #76c8e3;">Current<br>Humidity</h2>
+
+        </div>
+
+        <div class="container" id="fan">
+
+            <img src="images/spinningFan.gif" width="250" height="250">
+
+            <label class="switch" style="margin: 29px 0px;">
+                <input type="checkbox">
+                <span class="slider round"></span>
+            </label>
+
+        </div>
+
+    </div>
+
+    <div class="container" id="light">
+
+        <img src="images/phase1On.png" id="lightImg">
+        <div id="lightText">
+            <h2>Current Light Intensity</h2>
+            <h2 style="color: #FFCA10;">495</h2>
+        </div>
+
+    </div>
+
+    <div class="container" id="devices">
+
+        <img src="images/phone.png" id="devicesImg">
+        <div id="devicesText">
+            <h2>Wireless Devices Nearby</h2>
+            <h2>7</h2>
+        </div>
+
+    </div>
+</body>
+
+
+</html>
