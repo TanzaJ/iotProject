@@ -6,10 +6,11 @@ import Freenove_DHT as DHT
 import RPi.GPIO as GPIO
 from time import sleep
 
-app = Flask(__name__, static_folder='/dashboard/templates/static', static_url_path="/dashboard/templates")
+app = Flask(__name__)
 socketio = SocketIO(app)
 
-# Assume we have 3 sensors
+connected_users = {}
+
 sensor_data = [None, None, None]
 
 # Set up GPIO pins
@@ -38,38 +39,37 @@ def read_sensor_data(sensor_index):
 def sensor_reader(sensor_index):
     global sensor_data
     while True:
-        if socketio.connections:
+        if len(connected_users) != 0:
             if sensor_index == sensor_pins[0]:
                 dhtLoop(sensor_index)
             # sensor_data[sensor_index] = read_sensor_data(sensor_index)
             # socketio.emit('sensor_data', {'sensor_index': sensor_index, 'data': sensor_data[sensor_index]})
 
 @socketio.on('connect')
-def handle_connect(host_connection):
+def handle_connect():
+    connected_users[request.sid] = 'User connected'
     print('Successfully connected to: ' + host_connection)
     socketio.send('Connected to server!')
         
-@socketio.on('message')
-def handle_message(data):
-    print('Received message: ' + data)
+# @socketio.on('message')
+# def handle_message():
+#     print('Received message: ' + data)
 
 @socketio.on('disconnect')
-def handle_disconnect(host_connection):
-    print('Connection Lost: ' + host_connection)
+def handle_disconnect():
+    connected_users.pop(request.sid, None)
+    print('Connection Lost: ' + request.sid)
     socketio.send('Disconnected from server!')
 
 @app.route('/')
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/templates/<path:path>')
-def send_report(path):
-    return send_from_directory('templates', path)
 
 if __name__ == '__main__':
-    for i in len(sensor_pins):
+    for i in sensor_pins:
         threading.Thread(target=sensor_reader, args=(i,)).start()
-    socketio.run(app, host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, ssl_context=('cert.pem', 'key.pem'))
 
 
     
