@@ -1,4 +1,4 @@
-from dash import Dash, dcc, html, Input, Output, callback
+from dash import Dash, dcc, html, Input, Output
 
 app = Dash(__name__)
 
@@ -7,7 +7,10 @@ app.layout = html.Div([
     html.Link(rel="preconnect", href="https://fonts.googleapis.com"),
     html.Link(rel="preconnect", href="https://fonts.gstatic.com"),
     html.Link(href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap", rel="stylesheet"),
+    html.Script(src="assets/script.js"),
+    html.Script(src="assets/pureknob.js"),
 
+    # User preference section
     html.Div(className="container", id="profile", children=[
         html.Div(className="container", id="profileDiv1", children=[
             html.Img(src="assets/images/profilepic.png", id="profilepic")
@@ -49,8 +52,55 @@ app.layout = html.Div([
                 html.Button(id="savePrefsBtn", n_clicks=0, children="Save Preferences")
             ])
         ]),
+    ]),
+    # Temperature section
+    html.Div(className="container", id="tempHumFan", children=[
+        html.Div(className="container", id="tempContainer", children=[
+            html.Div(className="container", id="thermometerGauge"),
+            html.H2("Current Temperature")
+        ]),
+        html.Div(className="container", id="humidity", children=[
+            html.Div(className="container", id="humidityGauge"),
+            html.H2("Current Humidity", style={"color": "#76c8e3"})
+        ]),
+        html.Div(className="container", id="fan", children=[
+            html.Img(src=app.get_asset_url("images/spinningFan.png"), id="fan-img", width="250", height="250"),
+            html.Button("Turn On", id="fan-control-button", n_clicks=0)
+        ])
+    ]),
+
+    # Light section
+    html.Div(className="container", id="light", children=[
+        html.Img(src="assets/images/phase1On.png", id="lightImg"),
+        html.Div(id="lightText", children=[
+            html.H2("Current Light Intensity"),
+            html.H2("495", style={"color": "#FFCA10"})
+        ])
+    ]),
+
+    # Devices section
+    html.Div(className="container", id="devices", children=[
+        html.Img(src="assets/images/phone.png", id="devicesImg"),
+        html.Div(id="devicesText", children=[
+            html.H2("Wireless Devices Nearby"),
+            html.H2("7")
+        ])
     ])
 ])
+
+@app.callback(
+    Output("fan-img", "src"),
+    Output("fan-control-button", "children"),
+    Input("fan-control-button", "n_clicks"),
+    prevent_initial_call=True
+)
+def toggle_fan(n_clicks):
+    fan_state = n_clicks % 2  # Toggle the fan based on button clicks
+
+    if fan_state:
+        return app.get_asset_url('images/spinningFan.gif'), "Turn Off"
+    else:
+        return app.get_asset_url('images/spinningFan.png'), "Turn On"
 
 if __name__ == '__main__':
     app.run(debug=True)
