@@ -1,4 +1,13 @@
-from dash import Dash, dcc, html, Input, Output
+from dash import Dash, dcc, html, Input, Output, State
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+Motor1 = 22 # Enable Pin
+Motor2 = 27 # Input Pin
+Motor3 = 17 # Input Pin
+GPIO.setup(Motor1,GPIO.OUT)
+GPIO.setup(Motor2,GPIO.OUT)
+GPIO.setup(Motor3,GPIO.OUT)
 
 app = Dash(__name__)
 
@@ -64,6 +73,7 @@ app.layout = html.Div([
             html.H2("Current Humidity", style={"color": "#76c8e3"})
         ]),
         html.Div(className="container", id="fan", children=[
+            html.P("off", hidden=True, id="fan_state"),
             html.Img(src=app.get_asset_url("images/spinningFan.png"), id="fan-img", width="250", height="250"),
             html.Button("Turn On", id="fan-control-button", n_clicks=0)
         ])
@@ -91,16 +101,28 @@ app.layout = html.Div([
 @app.callback(
     Output("fan-img", "src"),
     Output("fan-control-button", "children"),
+    Output("fan_state", "children"),
     Input("fan-control-button", "n_clicks"),
+    State("fan_state", "children"),
     prevent_initial_call=True
 )
-def toggle_fan(n_clicks):
-    fan_state = n_clicks % 2  # Toggle the fan based on button clicks
+def toggle_fan(n_clicks, fan_state):
+    if fan_state == "off":
+        return turnFanOn()
+    elif fan_state == "on":
+        return turnFanOff()
 
-    if fan_state:
-        return app.get_asset_url('images/spinningFan.gif'), "Turn Off"
-    else:
-        return app.get_asset_url('images/spinningFan.png'), "Turn On"
+def turnFanOn():
+    GPIO.output(Motor1,GPIO.HIGH)
+    GPIO.output(Motor2,GPIO.LOW)
+    GPIO.output(Motor3,GPIO.HIGH)
+    return app.get_asset_url('images/spinningFan.gif'), "Turn Off", "on"
+
+def turnFanOff():
+    GPIO.output(Motor1,GPIO.LOW)
+    GPIO.output(Motor2,GPIO.LOW)
+    GPIO.output(Motor3,GPIO.LOW)
+    return app.get_asset_url('images/spinningFan.png'), "Turn On", "off"
 
 if __name__ == '__main__':
     app.run(debug=True)
