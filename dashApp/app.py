@@ -1,13 +1,21 @@
 from dash import Dash, dcc, html, Input, Output, State
-import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
-Motor1 = 22 # Enable Pin
-Motor2 = 27 # Input Pin
-Motor3 = 17 # Input Pin
-GPIO.setup(Motor1,GPIO.OUT)
-GPIO.setup(Motor2,GPIO.OUT)
-GPIO.setup(Motor3,GPIO.OUT)
+import smtplib
+import imaplib
+import email
+from email.header import decode_header
+# import RPi.GPIO as GPIO
+# GPIO.setmode(GPIO.BCM)
+# GPIO.setwarnings(False)
+# Motor1 = 22 # Enable Pin
+# Motor2 = 27 # Input Pin
+# Motor3 = 17 # Input Pin
+# GPIO.setup(Motor1,GPIO.OUT)
+# GPIO.setup(Motor2,GPIO.OUT)
+# GPIO.setup(Motor3,GPIO.OUT)
+
+sender_email = "testvanier@gmail.com"
+receiver_email = "testvanier@gmail.com"
+password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
 
@@ -95,7 +103,9 @@ app.layout = html.Div([
             html.H2("Wireless Devices Nearby"),
             html.H2("7")
         ])
-    ])
+    ]),
+    html.Button("Send Test Email", id="send-email-button"),
+    html.Div(id="email-status")
 ])
 
 @app.callback(
@@ -113,16 +123,79 @@ def toggle_fan(n_clicks, fan_state):
         return turnFanOff()
 
 def turnFanOn():
-    GPIO.output(Motor1,GPIO.HIGH)
-    GPIO.output(Motor2,GPIO.LOW)
-    GPIO.output(Motor3,GPIO.HIGH)
+    # GPIO.output(Motor1,GPIO.HIGH)
+    # GPIO.output(Motor2,GPIO.LOW)
+    # GPIO.output(Motor3,GPIO.HIGH)
     return app.get_asset_url('images/spinningFan.gif'), "Turn Off", "on"
 
 def turnFanOff():
-    GPIO.output(Motor1,GPIO.LOW)
-    GPIO.output(Motor2,GPIO.LOW)
-    GPIO.output(Motor3,GPIO.LOW)
+    # GPIO.output(Motor1,GPIO.LOW)
+    # GPIO.output(Motor2,GPIO.LOW)
+    # GPIO.output(Motor3,GPIO.LOW)
     return app.get_asset_url('images/spinningFan.png'), "Turn On", "off"
+
+#email sending and receiving logic:
+
+@app.callback(
+    Output("email-status", "children"),
+    Input("send-email-button", "n_clicks"),
+    prevent_initial_call=True
+)
+
+def send_test_email(n_clicks):
+    # Manually send a test email
+    subject = "Test Email"
+    body = "This is a test email. Please reply with 'YES' to turn on the fan."
+    send_email(subject, body)
+    return "Test email sent."
+
+def send_email(subject, body):
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, password)
+            message = f"Subject: {subject}\n\n{body}"
+            server.sendmail(sender_email, receiver_email, message)
+        print("Email sent successfully.")
+    except Exception as e:
+        print("Email could not be sent. Error:", str(e))
+
+def check_email_for_user_response():
+    try:
+        mail = imaplib.IMAP4_SSL("imap.gmail.com")
+        mail.login(sender_email, password)
+        mail.select("inbox")
+        status, email_ids = mail.search(None, "UNSEEN")
+
+        email_ids = email_ids[0].split()
+
+        for email_id in email_ids:
+            status, msg_data = mail.fetch(email_id, "(RFC822)")
+            msg = email.message_from_bytes(msg_data[0][1])
+            subject, encoding = decode_header(msg["Subject"])[0]
+
+            if isinstance(subject, bytes):
+                subject = subject.decode(encoding or "utf-8")
+
+            print("From:", msg["From"])
+            print("Subject:", subject)
+            print("Date:", msg["Date"])
+
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == "text/plain":
+                        email_body = part.get_payload(decode=True).decode("utf-8")
+                        print("Email Body:", email_body)
+
+                        if "YES" in email_body:
+                            print("Received 'YES' response. Turning on the fan...")
+                            turnFanOn()
+                        else:
+                            print("No 'YES' found in the email body.")
+        mail.logout()
+    except Exception as e:
+        print("Email retrieval error:", str(e))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
