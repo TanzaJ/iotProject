@@ -3,7 +3,11 @@ import smtplib
 import imaplib
 import email
 from email.header import decode_header
-# import RPi.GPIO as GPIO
+import threading
+import Freenove_DHT as DHT
+import RPi.GPIO as GPIO
+from time import sleep
+
 # GPIO.setmode(GPIO.BCM)
 # GPIO.setwarnings(False)
 # Motor1 = 22 # Enable Pin
@@ -12,6 +16,11 @@ from email.header import decode_header
 # GPIO.setup(Motor1,GPIO.OUT)
 # GPIO.setup(Motor2,GPIO.OUT)
 # GPIO.setup(Motor3,GPIO.OUT)
+
+#List all pins for sensor (James)
+sensor_pins = [18, 23, 24]
+motor_pins = [22, 27, 17]
+sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 
 sender_email = "testvanier@gmail.com"
 receiver_email = "testvanier@gmail.com"
@@ -197,5 +206,36 @@ def check_email_for_user_response():
         print("Email retrieval error:", str(e))
 
 
+#Sensor Functions: (James)
+
+# (James)
+def sensor_reader(sensor_index):
+    global sensor_data
+    while True:
+        if sensor_index == sensor_pins[0]:
+            dhtLoop(sensor_index)
+        #elif sensor_index == sensor_pins[1]:
+            
+#DHT (James)
+def dhtLoop(sensor_index):
+    dht = DHT.DHT(sensor_index) #create a DHT class object
+    
+    counts = 0 # Measurement counts
+    while(True):
+        counts += 1
+        print("Measurement counts: ", counts)
+        for i in range(0,15):
+            chk = dht.readDHT11()
+            if (chk is dht.DHTLIB_OK): #read DHT11 and get a return value. Then determine
+                print("DHT11,OK!")
+                break
+            sleep(0.1)
+        sensor_data['temperature'] = dht.temperature;
+        sensor_data['humidity'] = dht.humidity;
+        print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
+        sleep(2)
+
 if __name__ == '__main__':
+    for i in sensor_pins:
+        threading.Thread(target=sensor_reader, args=(i,)).start()
     app.run(debug=True)
