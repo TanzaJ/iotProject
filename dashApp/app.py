@@ -1,4 +1,4 @@
-from dash import Dash, dcc, html, Input, Output, State
+from dash import Dash, dcc, html, Input, Output, State, no_update
 import smtplib
 import imaplib
 import email
@@ -8,22 +8,20 @@ import Freenove_DHT as DHT
 import RPi.GPIO as GPIO
 from time import sleep
 
-# GPIO.setmode(GPIO.BCM)
-# GPIO.setwarnings(False)
-# Motor1 = 22 # Enable Pin
-# Motor2 = 27 # Input Pin
-# Motor3 = 17 # Input Pin
-# GPIO.setup(Motor1,GPIO.OUT)
-# GPIO.setup(Motor2,GPIO.OUT)
-# GPIO.setup(Motor3,GPIO.OUT)
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 
 #List all pins for sensor (James)
 sensor_pins = [18, 23, 24]
-motor_pins = [22, 27, 17]
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 
+motor_pins = [22, 27, 17]
+GPIO.setup(motor_pins[0],GPIO.OUT)
+GPIO.setup(motor_pins[1],GPIO.OUT)
+GPIO.setup(motor_pins[2],GPIO.OUT)
+
 sender_email = "testvanier@gmail.com"
-receiver_email = "testvanier@gmail.com"
+receiver_email = "farouk.assoum123@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -35,6 +33,7 @@ app.layout = html.Div([
     html.Link(href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap", rel="stylesheet"),
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
+    dcc.Interval(id="readSensorsAndEmailInterval", interval=5000),
 
     # User preference section
     html.Div(className="container", id="profile", children=[
@@ -90,7 +89,7 @@ app.layout = html.Div([
             html.H2("Current Humidity", style={"color": "#76c8e3"})
         ]),
         html.Div(className="container", id="fan", children=[
-            html.P("off", hidden=True, id="fan_state"),
+            html.P("fanOff", hidden=True, id="fan_state"),
             html.Img(src=app.get_asset_url("images/spinningFan.png"), id="fan-img", width="250", height="250"),
             html.Button("Turn On", id="fan-control-button", n_clicks=0)
         ])
@@ -117,31 +116,57 @@ app.layout = html.Div([
     html.Div(id="email-status")
 ])
 
+
 @app.callback(
-    Output("fan-img", "src"),
-    Output("fan-control-button", "children"),
+    Output("fan_state", "children", allow_duplicate=True),
+    Input("readSensorsAndEmailInterval", "n_intervals"),
+    prevent_initial_call=True
+)
+def sensor_and_email_reader(n_intervals):
+    global sensor_data
+    
+    print("Measurement counts: ", n_intervals)
+    dhtReading(sensor_pins[0])
+    user_response = check_email_for_user_response()
+    if user_response == "fanOn":
+        return user_response
+    return no_update
+
+@app.callback(
     Output("fan_state", "children"),
     Input("fan-control-button", "n_clicks"),
     State("fan_state", "children"),
     prevent_initial_call=True
 )
-def toggle_fan(n_clicks, fan_state):
-    if fan_state == "off":
-        return turnFanOn()
-    elif fan_state == "on":
+def toggle_fanState(n_clicks, fan_state):
+    if fan_state == "fanOff":
+        return "fanOn"
+    elif fan_state == "fanOn":
+        return "fanOff"
+
+@app.callback(
+    Output("fan-img", "src"),
+    Output("fan-control-button", "children"),
+    Input("fan_state", "children"),
+    prevent_initial_call=True
+)
+def update_fan(fan_state):
+    if fan_state == "fanOff":
         return turnFanOff()
+    elif fan_state == "fanOn":
+        return turnFanOn()
 
 def turnFanOn():
-    # GPIO.output(Motor1,GPIO.HIGH)
-    # GPIO.output(Motor2,GPIO.LOW)
-    # GPIO.output(Motor3,GPIO.HIGH)
-    return app.get_asset_url('images/spinningFan.gif'), "Turn Off", "on"
+    GPIO.output(motor_pins[0],GPIO.HIGH)
+    GPIO.output(motor_pins[1],GPIO.LOW)
+    GPIO.output(motor_pins[2],GPIO.HIGH)
+    return app.get_asset_url('images/spinningFan.gif'), "Turn Off"
 
 def turnFanOff():
-    # GPIO.output(Motor1,GPIO.LOW)
-    # GPIO.output(Motor2,GPIO.LOW)
-    # GPIO.output(Motor3,GPIO.LOW)
-    return app.get_asset_url('images/spinningFan.png'), "Turn On", "off"
+    GPIO.output(motor_pins[0],GPIO.LOW)
+    GPIO.output(motor_pins[1],GPIO.LOW)
+    GPIO.output(motor_pins[2],GPIO.LOW)
+    return app.get_asset_url('images/spinningFan.png'), "Turn On"
 
 #email sending and receiving logic:
 
@@ -154,7 +179,7 @@ def turnFanOff():
 def send_test_email(n_clicks):
     # Manually send a test email
     subject = "Test Email"
-    body = "This is a test email. Please reply with 'YES' to turn on the fan."
+    body = "<h1>This is a test email. Please reply with 'YES' to turn on the fan.</h1>"
     send_email(subject, body)
     return "Test email sent."
 
@@ -198,44 +223,31 @@ def check_email_for_user_response():
 
                         if "YES" in email_body:
                             print("Received 'YES' response. Turning on the fan...")
-                            turnFanOn()
+                            return "fanOn"
                         else:
                             print("No 'YES' found in the email body.")
         mail.logout()
     except Exception as e:
         print("Email retrieval error:", str(e))
 
-
 #Sensor Functions: (James)
 
 # (James)
-def sensor_reader(sensor_index):
-    global sensor_data
-    while True:
-        if sensor_index == sensor_pins[0]:
-            dhtLoop(sensor_index)
-        #elif sensor_index == sensor_pins[1]:
             
 #DHT (James)
-def dhtLoop(sensor_index):
+def dhtReading(sensor_index):
     dht = DHT.DHT(sensor_index) #create a DHT class object
     
-    counts = 0 # Measurement counts
-    while(True):
-        counts += 1
-        print("Measurement counts: ", counts)
-        for i in range(0,15):
-            chk = dht.readDHT11()
-            if (chk is dht.DHTLIB_OK): #read DHT11 and get a return value. Then determine
-                print("DHT11,OK!")
-                break
-            sleep(0.1)
-        sensor_data['temperature'] = dht.temperature;
-        sensor_data['humidity'] = dht.humidity;
-        print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
-        sleep(2)
+    # for i in range(0,15):
+    #     chk = dht.readDHT11()
+    #     if (chk is dht.DHTLIB_OK): #read DHT11 and get a return value. Then determine
+    #         print("DHT11,OK!")
+    #         break
+    #     sleep(0.1)
+    sensor_data['temperature'] = dht.temperature
+    sensor_data['humidity'] = dht.humidity
+    print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
 
 if __name__ == '__main__':
-    for i in sensor_pins:
-        threading.Thread(target=sensor_reader, args=(i,)).start()
+    #threading.Thread(target=sensorandemail_reader).start()
     app.run(debug=True)
