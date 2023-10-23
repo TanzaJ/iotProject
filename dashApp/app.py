@@ -11,7 +11,7 @@ from time import sleep
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-#List all pins for sensor (James)
+List all pins for sensor (James)
 sensor_pins = [18, 23, 24]
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 
@@ -21,7 +21,7 @@ GPIO.setup(motor_pins[1],GPIO.OUT)
 GPIO.setup(motor_pins[2],GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
-receiver_email = "farouk.assoum123@gmail.com"
+receiver_email = "testvanier@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -179,7 +179,7 @@ def turnFanOff():
 def send_test_email(n_clicks):
     # Manually send a test email
     subject = "Test Email"
-    body = "<h1>This is a test email. Please reply with 'YES' to turn on the fan.</h1>"
+    body = "<h1>This is a test email. Please reply to this email with yes in all capital to turn on the fan.</h1>"
     send_email(subject, body)
     return "Test email sent."
 
@@ -221,7 +221,9 @@ def check_email_for_user_response():
                         email_body = part.get_payload(decode=True).decode("utf-8")
                         print("Email Body:", email_body)
 
-                        if "YES" in email_body:
+                        first_word = email_body.strip().split()[0]
+
+                        if first_word.upper() == "YES":
                             print("Received 'YES' response. Turning on the fan...")
                             return "fanOn"
                         else:
@@ -229,6 +231,7 @@ def check_email_for_user_response():
         mail.logout()
     except Exception as e:
         print("Email retrieval error:", str(e))
+
 
 #Sensor Functions: (James)
 
