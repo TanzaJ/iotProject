@@ -179,7 +179,7 @@ def turnFanOff():
 def send_test_email(n_clicks):
     # Manually send a test email
     subject = "Test Email"
-    body = "<h1>This is a test email. Please reply to this email with yes in all capital to turn on the fan.</h1>"
+    body = "This is a test email. Please reply to this email 'YES' to turn on the fan."
     send_email(subject, body)
     return "Test email sent."
 
