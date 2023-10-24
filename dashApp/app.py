@@ -13,7 +13,6 @@ GPIO.setwarnings(False)
 
 #List all pins for sensor (James)
 sensor_pins = [18, 23, 24]
-GPIO.setup(18,GPIO.IN)
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 
 motor_pins = [22, 27, 17]
@@ -22,7 +21,7 @@ GPIO.setup(motor_pins[1],GPIO.OUT)
 GPIO.setup(motor_pins[2],GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
-receiver_email = "testvanier@gmail.com"
+receiver_email = "farouk.assoum123@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -35,8 +34,6 @@ app.layout = html.Div([
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
     dcc.Interval(id="readSensorsAndEmailInterval", interval=5000),
-    dcc.Interval(id="sensor_temp_reader", interval=1000),
-    dcc.Interval(id="sensor_humidity_reader", interval=1000),
     # User preference section
     html.Div(className="container", id="profile", children=[
         html.Div(className="container", id="profileDiv1", children=[
@@ -58,7 +55,7 @@ app.layout = html.Div([
                 ]),
                 html.Div(children=[
                     dcc.Input(type="text", maxLength="3", value="27"),
-                    str(int(sensor_data.get("temperature") or 0)) + '\N{DEGREE SIGN}' + "C"
+                    '\N{DEGREE SIGN}' + "C"
                 ]),
 
                 html.Label(htmlFor="", children=[
@@ -66,6 +63,7 @@ app.layout = html.Div([
                 ]),
                 html.Div(children=[
                     dcc.Input(type="text", maxLength="3", value="70"),
+                    "%"
                 ]),
 
                 html.Label(htmlFor="", children=[
@@ -119,43 +117,45 @@ app.layout = html.Div([
     html.Div(id="email-status")
 ])
 
-@app.callback(
-    Output("temp", "children", allow_duplicate=True),
-    Input("sensor_temp_reader", "n_intervals"),
-    prevent_initial_call=True
-)
-def sensor_temp_reader(n_intervals):
-    global sensor_data
+# @app.callback(
+#     Output("temp", "children", allow_duplicate=True),
+#     Input("sensor_temp_reader", "n_intervals"),
+#     prevent_initial_call=True
+# )
+# def sensor_temp_reader(n_intervals):
+#     global sensor_data
 
+#     return str(sensor_data.get("temperature")) + '\N{DEGREE SIGN}' + "C"
 
-    return str(sensor_data.get("temperature")) + '\N{DEGREE SIGN}' + "C"
+# @app.callback(
+#     Output("humidity_data", "children", allow_duplicate=True),
+#     Input("sensor_humidity_reader", "n_intervals"),
+#     prevent_initial_call=True
+# )
+# def sensor_humidity_reader(n_intervals):
+#     global sensor_data
 
-@app.callback(
-    Output("humidity_data", "children", allow_duplicate=True),
-    Input("sensor_humidity_reader", "n_intervals"),
-    prevent_initial_call=True
-)
-def sensor_humidity_reader(n_intervals):
-    global sensor_data
-
-
-    return str(sensor_data.get("humidity")) + "%"
+#     return str(sensor_data.get("humidity")) + "%"
 
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
+    Output("temp", "children"),
+    Output("humidity_data", "children"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     prevent_initial_call=True
 )
 def sensor_and_email_reader(n_intervals):
     global sensor_data
-    dhtReading(18)
     
     print("Measurement counts: ", n_intervals)
+    temperature, humidity = dhtReading(sensor_pins[0])
+
+
     
     user_response = check_email_for_user_response()
     if user_response == "fanOn":
-        return user_response
-    return no_update
+        return user_response, temperature, humidity
+    return no_update, temperature, humidity
 
 @app.callback(
     Output("fan_state", "children"),
@@ -266,9 +266,19 @@ def check_email_for_user_response():
 def dhtReading(sensor_index):
     dht = DHT.DHT(sensor_index) #create a DHT class object
 
+    for i in range(0,15):
+        chk = dht.readDHT11() #read DHT11 and get a return value. Then determine whether
+        #data read is normal according to the return value.
+        if (chk is dht.DHTLIB_OK): #read DHT11 and get a return value. Then determine
+        #whether data read is normal according to the return value.
+            print("DHT11,OK!")
+            break
+        time.sleep(0.1)
+
     sensor_data['temperature'] = dht.temperature
     sensor_data['humidity'] = dht.humidity
     print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
+    return dht.temperature, dht.humidity
 
 if __name__ == '__main__':
     app.run(debug=True)
