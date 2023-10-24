@@ -1,15 +1,16 @@
-from flask import Flask, render_template, send_from_directory, request
-from flask_socketio import SocketIO, emit
+#from flask import Flask, render_template, send_from_directory, request
+#from flask_socketio import SocketIO, emit
+from dash import Dash, dcc, html
+import plotly.express as px
 import threading
 import random
 import Freenove_DHT as DHT
 import RPi.GPIO as GPIO
 from time import sleep
 
-app = Flask(__name__)
-socketio = SocketIO(app)
-connected_users = {}
+app = Dash(__name__)
 
+connected_users = {}
 sensor_data = [None, None, None]
 
 # Set up GPIO pins
@@ -42,33 +43,13 @@ def sensor_reader(sensor_index):
             if sensor_index == sensor_pins[0]:
                 dhtLoop(sensor_index)
             # sensor_data[sensor_index] = read_sensor_data(sensor_index)
-            # socketio.emit('sensor_data', {'sensor_index': sensor_index, 'data': sensor_data[sensor_index]})
- 
-@socketio.on('connect')
-def handle_connect():
-    connected_users[request.sid] = 'User connected'
-    print('Successfully connected to: ' + host_connection)
-    socketio.send('Connected to server!')
-        
-# @socketio.on('message')
-# def handle_message():
-#     print('Received message: ' + data)
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    connected_users.pop(request.sid, None)
-    print('Connection Lost: ' + request.sid)
-    socketio.send('Disconnected from server!')
-
-@app.route('/')
-def dashboard():
-    return render_template('dashboard.html')
+            # socketio.emit('sensor_data', {'sensor_index': sensor_index, 'data': sensor_data[sensor_index]}
 
 
 if __name__ == '__main__':
-    for i in sensor_pins:
-        threading.Thread(target=sensor_reader, args=(i,)).start()
-    socketio.run(app, host='0.0.0.0', port=5000)
+#    for i in sensor_pins:
+#        threading.Thread(target= sensor_reader, args=(i,)).start()
+    app.run(debug=True)
 
 
     

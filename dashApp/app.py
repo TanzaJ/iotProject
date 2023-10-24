@@ -11,8 +11,9 @@ from time import sleep
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-List all pins for sensor (James)
+#List all pins for sensor (James)
 sensor_pins = [18, 23, 24]
+GPIO.setup(18,GPIO.IN)
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 
 motor_pins = [22, 27, 17]
@@ -34,7 +35,8 @@ app.layout = html.Div([
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
     dcc.Interval(id="readSensorsAndEmailInterval", interval=5000),
-
+    dcc.Interval(id="sensor_temp_reader", interval=1000),
+    dcc.Interval(id="sensor_humidity_reader", interval=1000),
     # User preference section
     html.Div(className="container", id="profile", children=[
         html.Div(className="container", id="profileDiv1", children=[
@@ -56,7 +58,7 @@ app.layout = html.Div([
                 ]),
                 html.Div(children=[
                     dcc.Input(type="text", maxLength="3", value="27"),
-                    '\N{DEGREE SIGN}' + "C"
+                    str(int(sensor_data.get("temperature") or 0)) + '\N{DEGREE SIGN}' + "C"
                 ]),
 
                 html.Label(htmlFor="", children=[
@@ -64,7 +66,6 @@ app.layout = html.Div([
                 ]),
                 html.Div(children=[
                     dcc.Input(type="text", maxLength="3", value="70"),
-                    "%"
                 ]),
 
                 html.Label(htmlFor="", children=[
@@ -82,11 +83,13 @@ app.layout = html.Div([
     html.Div(className="container", id="tempHumFan", children=[
         html.Div(className="container", id="tempContainer", children=[
             html.Div(className="container", id="thermometerGauge"),
-            html.H2("Current Temperature")
+            html.H2("Current Temperature"),
+            html.H3(id='temp')
         ]),
         html.Div(className="container", id="humidity", children=[
             html.Div(className="container", id="humidityGauge"),
-            html.H2("Current Humidity", style={"color": "#76c8e3"})
+            html.H2("Current Humidity", style={"color": "#76c8e3"}),
+            html.H3(id='humidity_data')
         ]),
         html.Div(className="container", id="fan", children=[
             html.P("fanOff", hidden=True, id="fan_state"),
@@ -116,6 +119,27 @@ app.layout = html.Div([
     html.Div(id="email-status")
 ])
 
+@app.callback(
+    Output("temp", "children", allow_duplicate=True),
+    Input("sensor_temp_reader", "n_intervals"),
+    prevent_initial_call=True
+)
+def sensor_temp_reader(n_intervals):
+    global sensor_data
+
+
+    return str(sensor_data.get("temperature")) + '\N{DEGREE SIGN}' + "C"
+
+@app.callback(
+    Output("humidity_data", "children", allow_duplicate=True),
+    Input("sensor_humidity_reader", "n_intervals"),
+    prevent_initial_call=True
+)
+def sensor_humidity_reader(n_intervals):
+    global sensor_data
+
+
+    return str(sensor_data.get("humidity")) + "%"
 
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
@@ -124,9 +148,10 @@ app.layout = html.Div([
 )
 def sensor_and_email_reader(n_intervals):
     global sensor_data
+    dhtReading(18)
     
     print("Measurement counts: ", n_intervals)
-    dhtReading(sensor_pins[0])
+    
     user_response = check_email_for_user_response()
     if user_response == "fanOn":
         return user_response
@@ -240,17 +265,10 @@ def check_email_for_user_response():
 #DHT (James)
 def dhtReading(sensor_index):
     dht = DHT.DHT(sensor_index) #create a DHT class object
-    
-    # for i in range(0,15):
-    #     chk = dht.readDHT11()
-    #     if (chk is dht.DHTLIB_OK): #read DHT11 and get a return value. Then determine
-    #         print("DHT11,OK!")
-    #         break
-    #     sleep(0.1)
+
     sensor_data['temperature'] = dht.temperature
     sensor_data['humidity'] = dht.humidity
     print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
 
 if __name__ == '__main__':
-    #threading.Thread(target=sensorandemail_reader).start()
     app.run(debug=True)
