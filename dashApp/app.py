@@ -95,12 +95,12 @@ app.layout = html.Div([
                 id='temp',
                 className='gauge',
                 color=theme['primary'],
-                label='Scale',
                 scale={'start': 0, 'interval': 5, 'labelInterval': 2},
                 value=0,
                 min=0,
                 max=40,
-            )
+            ),
+            html.H3(id="temperatureHeading")
         ]),
         html.Div(className="container", id="humidity", children=[
             html.Div(className="container", id="humidityGauge"),
@@ -109,12 +109,12 @@ app.layout = html.Div([
                 id='humidity_data',
                 className='gauge',
                 color=theme['primary'],
-                label='Scale',
                 scale={'start': 0, 'interval': 5, 'labelInterval': 2},
                 value=0,
                 min=0,
                 max=100,
-            )
+            ),
+            html.H3(id="humidityHeading")
         ]),
         html.Div(className="container", id="fan", children=[
             html.P("fanOff", hidden=True, id="fan_state"),
@@ -167,7 +167,9 @@ app.layout = html.Div([
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
     Output("temp", "value"),
+    Output("temperatureHeading", "children"),
     Output("humidity_data", "value"),
+    Output("humidityHeading", "children"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     prevent_initial_call=True
 )
@@ -178,14 +180,14 @@ def sensor_and_email_reader(n_intervals):
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
 
-    if (sensor_data["temperature"] > 24 and canSend):
-        send_test_email(sensor_data["temperature"])
+    if (temperature > 24 and canSend):
+        send_test_email(temperature)
         canSend = False
     
     user_response = check_email_for_user_response()
     if user_response == "fanOn":
-        return user_response, temperature, humidity
-    return no_update, temperature, humidity
+        return user_response, temperature, temperature, humidity, humidity
+    return no_update, temperature, temperature, humidity, humidity
 
 @app.callback(
     Output("fan_state", "children"),
@@ -235,7 +237,7 @@ def turnFanOff():
 def send_test_email(temp):
     # Manually send a test email
     subject = "Temperature warning!"
-    body = f"The temperature is: {temp} which is greater than 24\n If you wish to turn the fan on reply YES"
+    body = f"The temperature is: {temp} which is greater than 24\n If you wish to turn the fan on reply 'yes' in all caps"
     send_email(subject, body)
     return "Test email sent."
 
