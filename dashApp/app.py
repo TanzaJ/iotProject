@@ -113,7 +113,7 @@ app.layout = html.Div([
                 scale={'start': 0, 'interval': 5, 'labelInterval': 2},
                 value=0,
                 min=0,
-                max=40,
+                max=100,
             )
         ]),
         html.Div(className="container", id="fan", children=[
@@ -178,7 +178,7 @@ def sensor_and_email_reader(n_intervals):
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
 
-    if (sensor_data["temperature"] > 24 & canSend):
+    if (sensor_data["temperature"] > 24 and canSend):
         send_test_email(sensor_data["temperature"])
         canSend = False
     
