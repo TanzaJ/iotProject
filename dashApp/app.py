@@ -21,7 +21,7 @@ GPIO.setup(motor_pins[1],GPIO.OUT)
 GPIO.setup(motor_pins[2],GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
-receiver_email = "farouk.assoum123@gmail.com"
+receiver_email = "hajimeadams289@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -82,7 +82,15 @@ app.layout = html.Div([
         html.Div(className="container", id="tempContainer", children=[
             html.Div(className="container", id="thermometerGauge"),
             html.H2("Current Temperature"),
-            html.H3(id='temp')
+            daq.Gauge(
+                id='temp',
+                color="#9B51E0",
+                label='Scale',
+                scale={'start': 0, 'interval': 5, 'labelInterval': 2},
+                value=0,
+                min=0,
+                max=40,
+            )
         ]),
         html.Div(className="container", id="humidity", children=[
             html.Div(className="container", id="humidityGauge"),
@@ -139,7 +147,7 @@ app.layout = html.Div([
 
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
-    Output("temp", "children"),
+    Output("temp", "value"),
     Output("humidity_data", "children"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     prevent_initial_call=True
@@ -150,7 +158,8 @@ def sensor_and_email_reader(n_intervals):
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
 
-
+    if (sensor_data["temperature"] > 24):
+        send_test_email(sensor_data["temperature"])
     
     user_response = check_email_for_user_response()
     if user_response == "fanOn":
@@ -201,10 +210,10 @@ def turnFanOff():
     prevent_initial_call=True
 )
 
-def send_test_email(n_clicks):
+def send_test_email(temp):
     # Manually send a test email
-    subject = "Test Email"
-    body = "This is a test email. Please reply to this email 'YES' to turn on the fan."
+    subject = "Temperature warning!"
+    body = f"The temperature is: {temp} which is greater than 24\n If you wish to turn the fan on reply YES"
     send_email(subject, body)
     return "Test email sent."
 
