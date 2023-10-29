@@ -15,6 +15,7 @@ GPIO.setwarnings(False)
 #List all pins for sensor (James)
 sensor_pins = [18, 23, 24]
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
+canSend = True
 
 motor_pins = [22, 27, 17]
 GPIO.setup(motor_pins[0],GPIO.OUT)
@@ -104,7 +105,17 @@ app.layout = html.Div([
         html.Div(className="container", id="humidity", children=[
             html.Div(className="container", id="humidityGauge"),
             html.H2("Current Humidity", style={"color": "#76c8e3"}),
-            html.H3(id='humidity_data')
+            html.H3(id='humidity_data'),
+            daq.Gauge(
+                id='humidity_data',
+                className='gauge',
+                color=theme['primary'],
+                label='Scale',
+                scale={'start': 0, 'interval': 5, 'labelInterval': 2},
+                value=0,
+                min=0,
+                max=40,
+            )
         ]),
         html.Div(className="container", id="fan", children=[
             html.P("fanOff", hidden=True, id="fan_state"),
@@ -153,7 +164,6 @@ app.layout = html.Div([
 #     global sensor_data
 
 #     return str(sensor_data.get("humidity")) + "%"
-canSend = True
 
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
@@ -266,7 +276,6 @@ def check_email_for_user_response():
             if msg.is_multipart():
                 for part in msg.walk():
                     if part.get_content_type() == "text/plain":
-                        canSend = True
                         email_body = part.get_payload(decode=True).decode("utf-8")
                         print("Email Body:", email_body)
 
@@ -274,8 +283,10 @@ def check_email_for_user_response():
 
                         if first_word.upper() == "YES":
                             print("Received 'YES' response. Turning on the fan...")
+                            canSend = True
                             return "fanOn"
                         else:
+                            canSend = True
                             print("No 'YES' found in the email body.")
         mail.logout()
     except Exception as e:
