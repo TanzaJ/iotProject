@@ -27,6 +27,13 @@ password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
 
+theme = {
+    'dark': True,
+    'detail': '#007439',
+    'primary': '#00EA64',
+    'secondary': '#6E6E6E',
+}
+
 app.layout = html.Div([
     html.Link(rel="stylesheet", href="style.css"),
     html.Link(rel="preconnect", href="https://fonts.googleapis.com"),
@@ -85,7 +92,8 @@ app.layout = html.Div([
             html.H2("Current Temperature"),
             daq.Gauge(
                 id='temp',
-                color="#9B51E0",
+                className='gauge',
+                color=theme['primary'],
                 label='Scale',
                 scale={'start': 0, 'interval': 5, 'labelInterval': 2},
                 value=0,
@@ -145,6 +153,7 @@ app.layout = html.Div([
 #     global sensor_data
 
 #     return str(sensor_data.get("humidity")) + "%"
+canSend = True
 
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
@@ -155,12 +164,14 @@ app.layout = html.Div([
 )
 def sensor_and_email_reader(n_intervals):
     global sensor_data
+    global canSend
     
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
 
-    if (sensor_data["temperature"] > 24):
+    if (sensor_data["temperature"] > 24 & canSend):
         send_test_email(sensor_data["temperature"])
+        canSend = False
     
     user_response = check_email_for_user_response()
     if user_response == "fanOn":
@@ -175,6 +186,7 @@ def sensor_and_email_reader(n_intervals):
 )
 def toggle_fanState(n_clicks, fan_state):
     if fan_state == "fanOff":
+
         return "fanOn"
     elif fan_state == "fanOn":
         return "fanOff"
@@ -230,6 +242,7 @@ def send_email(subject, body):
         print("Email could not be sent. Error:", str(e))
 
 def check_email_for_user_response():
+    global canSend
     try:
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(sender_email, password)
@@ -253,6 +266,7 @@ def check_email_for_user_response():
             if msg.is_multipart():
                 for part in msg.walk():
                     if part.get_content_type() == "text/plain":
+                        canSend = True
                         email_body = part.get_payload(decode=True).decode("utf-8")
                         print("Email Body:", email_body)
 
