@@ -105,7 +105,6 @@ app.layout = html.Div([
         html.Div(className="container", id="humidity", children=[
             html.Div(className="container", id="humidityGauge"),
             html.H2("Current Humidity", style={"color": "#76c8e3"}),
-            html.H3(id='humidity_data'),
             daq.Gauge(
                 id='humidity_data',
                 className='gauge',
@@ -168,7 +167,7 @@ app.layout = html.Div([
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
     Output("temp", "value"),
-    Output("humidity_data", "children"),
+    Output("humidity_data", "value"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     prevent_initial_call=True
 )
