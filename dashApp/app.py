@@ -8,6 +8,7 @@ import threading
 import Freenove_DHT as DHT
 import RPi.GPIO as GPIO
 from time import sleep
+import sqlite3
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -50,7 +51,7 @@ app.layout = html.Div([
         ]),
         html.Div(className="container", id="profileDiv2", children=[
             html.H5(style={"font-style": "italic"}, children="Welcome"),
-            html.H1(style={"font-size": "42pt"}, children="<Username>")
+            html.H1(style={"font-size": "42pt"}, children="<Username>", id="usernameH1")
         ]),
         html.Div(className="container", id="profileDiv3", children=[
             html.H5(style={"font-weight": "600"}, children="Saturday, October 7, 2023"),
@@ -63,7 +64,7 @@ app.layout = html.Div([
                     html.H5("Temperature")
                 ]),
                 html.Div(children=[
-                    dcc.Input(type="text", maxLength="3", value="27"),
+                    dcc.Input(type="text", maxLength="3", value="27", id="tempInput"),
                     '\N{DEGREE SIGN}' + "C"
                 ]),
 
@@ -71,7 +72,7 @@ app.layout = html.Div([
                     html.H5("Humidity")
                 ]),
                 html.Div(children=[
-                    dcc.Input(type="text", maxLength="3", value="70"),
+                    dcc.Input(type="text", maxLength="3", value="70", id="humidityInput"),
                     "%"
                 ]),
 
@@ -79,7 +80,7 @@ app.layout = html.Div([
                     html.H5("Light Intensity")
                 ]),
                 html.Div(children=[
-                    dcc.Input(type="text", maxLength="3", value="505")
+                    dcc.Input(type="text", maxLength="3", value="505", id="lightIntensityInput")
                 ]),
 
                 html.Button(id="savePrefsBtn", n_clicks=0, children="Save Preferences")
@@ -141,28 +142,24 @@ app.layout = html.Div([
         ])
     ]),
     html.Button("Send Test Email", id="send-email-button"),
-    html.Div(id="email-status")
+    html.Div(id="email-status"),
+    html.Button("Get User Profile", id="get-user-profile-button"),
 ])
 
-# @app.callback(
-#     Output("temp", "children", allow_duplicate=True),
-#     Input("sensor_temp_reader", "n_intervals"),
-#     prevent_initial_call=True
-# )
-# def sensor_temp_reader(n_intervals):
-#     global sensor_data
-
-#     return str(sensor_data.get("temperature")) + '\N{DEGREE SIGN}' + "C"
-
-# @app.callback(
-#     Output("humidity_data", "children", allow_duplicate=True),
-#     Input("sensor_humidity_reader", "n_intervals"),
-#     prevent_initial_call=True
-# )
-# def sensor_humidity_reader(n_intervals):
-#     global sensor_data
-
-#     return str(sensor_data.get("humidity")) + "%"
+@app.callback(
+    Output("usernameH1", "children"),
+    Output("tempInput", "value"),
+    Output("humidityInput", "value"),
+    Output("lightIntensityInput", "value"),
+    Input("get-user-profile-button", "n_clicks"),
+    prevent_initial_call=True
+)
+def get_user_profile(n_clicks):
+    con = sqlite3.connect("profiles_db.db")
+    cur = con.cursor()
+    res = cur.execute("SELECT * FROM Profile WHERE UserID = 1")
+    profile = res.fetchone()
+    return profile[1], profile[2], profile[3], profile[4]
 
 @app.callback(
     Output("fan_state", "children", allow_duplicate=True),
