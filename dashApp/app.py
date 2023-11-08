@@ -13,7 +13,7 @@ import sqlite3
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-#List all pins for sensor (James)
+List all pins for sensor (James)
 sensor_pins = [18, 23, 24]
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 canSend = True
@@ -44,6 +44,7 @@ app.layout = html.Div([
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
     dcc.Interval(id="readSensorsAndEmailInterval", interval=5000),
+    dcc.Store(id='user-preferences', storage_type='session'),
     # User preference section
     html.Div(className="container", id="profile", children=[
         html.Div(className="container", id="profileDiv1", children=[
@@ -84,6 +85,7 @@ app.layout = html.Div([
                 ]),
 
                 html.Button(id="savePrefsBtn", n_clicks=0, children="Save Preferences")
+
             ])
         ]),
     ]),
@@ -161,15 +163,6 @@ def get_user_profile(n_clicks):
     profile = res.fetchone()
     return profile[1], profile[2], profile[3], profile[4]
 
-@app.callback(
-    Output("fan_state", "children", allow_duplicate=True),
-    Output("temp", "value"),
-    Output("temperatureHeading", "children"),
-    Output("humidity_data", "value"),
-    Output("humidityHeading", "children"),
-    Input("readSensorsAndEmailInterval", "n_intervals"),
-    prevent_initial_call=True
-)
 def sensor_and_email_reader(n_intervals):
     global sensor_data
     global canSend
@@ -185,6 +178,34 @@ def sensor_and_email_reader(n_intervals):
     if user_response == "fanOn":
         return user_response, temperature, temperature, humidity, humidity
     return no_update, temperature, temperature, humidity, humidity
+
+# callback for saving preferences
+@app.callback(
+    Output("user-preferences", "data"),  # Use a store to store preferences
+    Input("savePrefsBtn", "n_clicks"),
+    State("tempInput", "value"),
+    State("humidityInput", "value"),
+    State("lightIntensityInput", "value"),
+    prevent_initial_call=True
+)
+
+def save_preferences(n_clicks, temp_value, humidity_value, light_intensity_value):
+    return {'temp': temp_value, 'humidity': humidity_value, 'light_intensity': light_intensity_value}
+
+@app.callback(
+    Output("savePrefsBtn", "n_clicks"),
+    Input("user-preferences", "data"),
+    prevent_initial_call=True
+)
+
+def update_database(user_preferences):
+    con = sqlite3.connect("profiles_db.db")
+    cur = con.cursor()
+    cur.execute("UPDATE Profile SET TempThreshold=?, HumidityThreshold=?, LightIntensityThreshold=? WHERE UserID=1",
+                (user_preferences['temp'], user_preferences['humidity'], user_preferences['light_intensity']))
+    con.commit()
+    con.close()
+    return 0  # Reset the button click count
 
 @app.callback(
     Output("fan_state", "children"),
@@ -224,7 +245,6 @@ def turnFanOff():
     return app.get_asset_url('images/spinningFan.png'), "Turn On"
 
 #email sending and receiving logic:
-
 @app.callback(
     Output("email-status", "children"),
     Input("send-email-button", "n_clicks"),
