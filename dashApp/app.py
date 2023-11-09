@@ -13,7 +13,7 @@ import sqlite3
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-List all pins for sensor (James)
+# List all pins for sensor (James)
 sensor_pins = [18, 23, 24]
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 canSend = True
@@ -44,15 +44,15 @@ app.layout = html.Div([
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
     dcc.Interval(id="readSensorsAndEmailInterval", interval=5000),
-    dcc.Store(id='user-preferences', storage_type='session'),
+    dcc.Store(id='loaded-user-profile', storage_type='session'),
     # User preference section
     html.Div(className="container", id="profile", children=[
         html.Div(className="container", id="profileDiv1", children=[
-            html.Img(src="assets/images/profilepic.png", id="profilepic")
+            html.Img(src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAPFBMVEXk5ueutLepsLPo6uursbXJzc/p6+zj5ea2u76orrKvtbi0ubzZ3N3O0dPAxcfg4uPMz9HU19i8wcPDx8qKXtGiAAAFTElEQVR4nO2d3XqzIAyAhUD916L3f6+f1m7tVvtNINFg8x5tZ32fQAIoMcsEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQTghAJD1jWtnXJPP/54IgNzZQulSmxvTH6oYXX4WS+ivhTbqBa1r26cvCdCu6i0YXbdZ0o4A1rzV+5IcE3YE+z58T45lqo7g1Aa/JY5tgoqQF3qb382x7lNzBLcxft+O17QUYfQI4IIeklKsPSN4i6LKj/7Zm8n99RbHJpEw9gEBXNBpKIYLJqKYRwjOikf//r+J8ZsVuacbqCMNleI9TqGLGqMzhnVdBOdd6F/RlrFijiCoVMk320CBIahUxTWI0KKEcJqKbMdpdJb5QvdHq6wCI5qhKlgGMS/RBHkubWDAE+QZxB4xhCyDiDkLZxgGEVdQldzSKbTIhmZkFkSEPcVvmBn2SMuZB9od7fQDsMiDdKJjFUSCQarM5WirZ3C2TT/htYnyPcPfgrFHWz0BI74gr6J/IZiGUxAZGQLqmvQLTrtE/Go4YxhVRIpEw+sww1IIcqr5NKmUUzLF3d4/qPkYIp2T/obPuemlojFUR4t9Q2Vojhb7BmgElWHzLPH8hucfpefPNFTVgs9h1AdU/Pin96vwWbWdf+X9Absn3OdO34aMdsDnP8WgKYisTqI6CkNGqZQo1XA6Ef6AU32SJzOcBukHPF07/xNSgmHKa5BOhtezv6mA/rYJpwXNAnbRZ1XuF3BzDcO3vpA3+ny2909gbqE4hhD3LIPhLLyBNhPZvbZ3B+3tPYa18A7auSlXQayKwTPNLKDcuOB0xPYKDPFTkWsevQPRZ1J8Hji9I1KQ34r7hZhrwNwOZ97QxNx0drwn4QI0wQk1DcEsfKCWKdxVvxPSNUIp/knmAXT+nT+Ko3+0H96rcNb3m1fx7MBTJdeBJ7uFcWsc0wvgAsC4pROW0l2inbAmIBv/7GZmuhQH6API2rr8T0e6yuZJ+80A9LZeG62T3tik31XwxtwZcizKuTHkMjB1WdZde4Kmic/A5ZI3rr1ae21d08PlVHYfAaxw9G9CYRbJ+8ZdbTcMRV1XM3VdF0M32vtoTdZ0+u29s0OttJ5bz64UwinjaFMVY9vkqc3KKSxN21Xl+0L4Q3Vuv1tYl0pqnX6ms4XetFz7gdZVAgUEoJntfOUe4ZwsHd9FzqQ3Vv6xe41l0XJcqcKl6TZvlv7ClAW3BsqQW4X7ypApB8dmTgK4IX5wvqIVj33HtD2qSG4BqznxdIefL27Y4sahi0MdIdvUsDva8agGGbCtITmCY31MHD2O0uIdh/0rJDQ1VX5Zdxz3rR2QDbv6qXl9vudzqQtGm1Jv9LDXOsfvvB7VcZ8PDKD0mQ1VHPYQ9O+Yj4hR1IUD8rBnn3ho2m8oQMxbCFiKlL2ioSW5heeJqegED52CzxCtcGD3Kv8Wms9EYLyUhwaFIhSMBClevWEmiK/Iaogu4H7sg6ppQhQG8RUqivuTGOAJOg6FfgW0q0M0PQMRMEgXaeNf3SYDZ8PIMI0+wHgr/MgN7wYwpiLjCCqM6ydUDZLQiB6nDdNC8SDyig3jPPpFXGcC9O8BUBDVmgBY59E7Md/35Loe/UVEECEJwYggJjELZ4J71SaQSBeC02n4Da29CayJNA28SAhd2CQyC1Xw6pSmGSINQVuMhAZp4DClan9MgmkDDNmezqwS8sgtlXK/EPBhoaSmYVC/F7IO1jQEdHOlabpKh3+jzLQSTUiq4X2I+Ip/zU8rlaqAvkS21ElR+gqu3zbjjL+hIAiCIAiCIAiCIAiCsCf/AKrfVhSbvA+DAAAAAElFTkSuQmCC", id="profilepic")
         ]),
         html.Div(className="container", id="profileDiv2", children=[
             html.H5(style={"font-style": "italic"}, children="Welcome"),
-            html.H1(style={"font-size": "42pt"}, children="<Username>", id="usernameH1")
+            dcc.Input(type="text", style={"font-size": "42pt", "font-weight": "bold"}, value="<Username>", id="nameInput")
         ]),
         html.Div(className="container", id="profileDiv3", children=[
             html.H5(style={"font-weight": "600"}, children="Saturday, October 7, 2023"),
@@ -60,7 +60,7 @@ app.layout = html.Div([
         ]),
         html.Div(className="container", id="profileDiv4", children=[
             html.H5(style={"font-style": "italic"}, children="Preferences"),
-            html.Form(action="", id="preferencesForm", children=[
+            html.Div(id="preferencesForm", children=[
                 html.Label(htmlFor="", children=[
                     html.H5("Temperature")
                 ]),
@@ -83,10 +83,10 @@ app.layout = html.Div([
                 html.Div(children=[
                     dcc.Input(type="text", maxLength="3", value="505", id="lightIntensityInput")
                 ]),
-
-                html.Button(id="savePrefsBtn", n_clicks=0, children="Save Preferences")
-
             ])
+        ]),
+        html.Div(className="container", id="profileDiv5", children=[
+            html.Button(id="saveProfileBtn", n_clicks=0, children="Save Profile")
         ]),
     ]),
     # Temperature section
@@ -148,11 +148,12 @@ app.layout = html.Div([
     html.Button("Get User Profile", id="get-user-profile-button"),
 ])
 
+# Output("nameInput", "children"),
+#     Output("tempInput", "value"),
+#     Output("humidityInput", "value"),
+#     Output("lightIntensityInput", "value"),
 @app.callback(
-    Output("usernameH1", "children"),
-    Output("tempInput", "value"),
-    Output("humidityInput", "value"),
-    Output("lightIntensityInput", "value"),
+    Output("loaded-user-profile", "data"),
     Input("get-user-profile-button", "n_clicks"),
     prevent_initial_call=True
 )
@@ -161,16 +162,27 @@ def get_user_profile(n_clicks):
     cur = con.cursor()
     res = cur.execute("SELECT * FROM Profile WHERE UserID = 1")
     profile = res.fetchone()
-    return profile[1], profile[2], profile[3], profile[4]
+    return {'userID': profile[0], 'name': profile[1], 'tempThreshold': profile[2], 'humidityThreshold': profile[3], 'lightIntensityThreshold': profile[4], 'profilePic': profile[5]}
+    #return profile[1], profile[2], profile[3], profile[4]
 
-def sensor_and_email_reader(n_intervals):
+@app.callback(
+    Output("fan_state", "children", allow_duplicate=True),
+    Output("temp", "value"),
+    Output("temperatureHeading", "children"),
+    Output("humidity_data", "value"),
+    Output("humidityHeading", "children"),
+    Input("readSensorsAndEmailInterval", "n_intervals"),
+    State("loaded-user-profile", "data"),
+    prevent_initial_call=True
+)
+def sensor_and_email_reader(n_intervals, loaded_user_profile):
     global sensor_data
     global canSend
     
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
 
-    if (temperature > 24 and canSend):
+    if (temperature > loaded_user_profile['tempThreshold'] and canSend):
         send_test_email(temperature)
         canSend = False
     
@@ -181,31 +193,44 @@ def sensor_and_email_reader(n_intervals):
 
 # callback for saving preferences
 @app.callback(
-    Output("user-preferences", "data"),  # Use a store to store preferences
-    Input("savePrefsBtn", "n_clicks"),
+    Output("loaded-user-profile", "data", allow_duplicate = True),  # Use a store to store preferences
+    Input("saveProfileBtn", "n_clicks"),
+    State("loaded-user-profile", "data"),  # Use a store to store preferences
+    State("nameInput", "value"),
     State("tempInput", "value"),
     State("humidityInput", "value"),
     State("lightIntensityInput", "value"),
     prevent_initial_call=True
 )
 
-def save_preferences(n_clicks, temp_value, humidity_value, light_intensity_value):
-    return {'temp': temp_value, 'humidity': humidity_value, 'light_intensity': light_intensity_value}
+def save_preferences(n_clicks, loaded_user_profile, name_value, temp_value, humidity_value, light_intensity_value):
+    updated_user_profile = {'userID': loaded_user_profile['userID'], 'name': name_value, 'tempThreshold': temp_value, 'humidityThreshold': humidity_value, 'lightIntensityThreshold': light_intensity_value, 'profilePic': loaded_user_profile['profilePic']}
+    #user_preferences = {'temp': temp_value, 'humidity': humidity_value, 'light_intensity': light_intensity_value}
+    update_database(updated_user_profile)
+    return updated_user_profile
 
-@app.callback(
-    Output("savePrefsBtn", "n_clicks"),
-    Input("user-preferences", "data"),
-    prevent_initial_call=True
-)
-
-def update_database(user_preferences):
+def update_database(updated_user_profile):
     con = sqlite3.connect("profiles_db.db")
     cur = con.cursor()
-    cur.execute("UPDATE Profile SET TempThreshold=?, HumidityThreshold=?, LightIntensityThreshold=? WHERE UserID=1",
-                (user_preferences['temp'], user_preferences['humidity'], user_preferences['light_intensity']))
+    cur.execute("UPDATE Profile SET name=?, TempThreshold=?, HumidityThreshold=?, LightIntensityThreshold=? WHERE UserID=?",
+                (updated_user_profile['name'], updated_user_profile['tempThreshold'], updated_user_profile['humidityThreshold'], updated_user_profile['lightIntensityThreshold'], updated_user_profile['userID']))
     con.commit()
     con.close()
-    return 0  # Reset the button click count
+    return  # Reset the button click count
+
+@app.callback(
+    Output("nameInput", "value"),
+    Output("tempInput", "value"),
+    Output("humidityInput", "value"),
+    Output("lightIntensityInput", "value"),
+    Output("profilepic", "src"),
+    Input("loaded-user-profile", "data"),  # Use a store to store preferences
+    prevent_initial_call=True
+)
+def load_user_profile(loaded_user_profile):
+    if loaded_user_profile is None:
+        return no_update, no_update, no_update, no_update, no_update
+    return loaded_user_profile['name'], loaded_user_profile['tempThreshold'], loaded_user_profile['humidityThreshold'], loaded_user_profile['lightIntensityThreshold'] , loaded_user_profile['profilePic'] 
 
 @app.callback(
     Output("fan_state", "children"),
