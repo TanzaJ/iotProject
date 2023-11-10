@@ -1,9 +1,9 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-//const char* ssid = "TP-Link_2AD8";
-//const char* password = "14730078";
-const char* ssid = "TP-LINK_Guest_B043_5G_1";
-const char* password = "63260588";
+const char* ssid = "TP-Link_2AD8";
+const char* password = "14730078";
+// const char* ssid = "TP-LINK_Guest_B043_5G_1";
+// const char* password = "63260588";
 const char* mqtt_server = "192.168.0.110";
 WiFiClient vanieriot;
 PubSubClient client(vanieriot);
