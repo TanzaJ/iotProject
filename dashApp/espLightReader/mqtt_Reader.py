@@ -6,7 +6,7 @@ Written for my Instructable - "How to use MQTT with the Raspberry Pi and ESP8266
 import paho.mqtt.client as mqtt
 
 # Don't forget to change the variables for the MQTT broker!
-mqtt_topic = "Light_Sensor"
+mqtt_topic = "vanieriot"
 mqtt_broker_ip = "192.168.0.115"
 
 client = mqtt.Client()
@@ -15,7 +15,7 @@ client = mqtt.Client()
 # to the broker, and what happens then the topic receives a message
 def on_connect(client, userdata, flags, rc):
     # rc is the error code returned when connecting to the broker
-    print "Connected!", str(rc)
+    print ("Connected!", str(rc))
     
     # Once the client has connected to the broker, subscribe to the topic
     client.subscribe(mqtt_topic)
@@ -25,7 +25,7 @@ def on_message(client, userdata, msg):
     # If you want to check each message, and do something depending on
     # the content, the code to do this should be run in this function
     
-    print "Topic: ", msg.topic + "\nMessage: " + str(msg.payload)
+    print ("Topic: ", msg.topic + "\nMessage: " + str(msg.payload))
     
     # The message itself is stored in the msg variable
     # and details about who sent it are stored in userdata
