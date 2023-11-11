@@ -181,8 +181,8 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
-
-    if (temperature > loaded_user_profile['tempThreshold'] and canSend):
+#loaded_user_profile['tempThreshold']
+    if (temperature > 24 and canSend):
         send_test_email(temperature)
         canSend = False
     
@@ -359,4 +359,4 @@ def dhtReading(sensor_index):
     return dht.temperature, dht.humidity
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000, host='0.0.0.0')

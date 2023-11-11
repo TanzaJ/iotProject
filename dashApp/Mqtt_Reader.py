@@ -10,7 +10,7 @@ class PhotoSensor(object):
         return photoData
     # Don't forget to change the variables for the MQTT broker!
     mqtt_topic = "Light_Sensor"
-    mqtt_broker_ip = "192.168.0.110"
+    mqtt_broker_ip = "192.168.0.116"
 
     client = mqtt.Client()
 
