@@ -202,7 +202,7 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     State("nameInput", "value"),
     State("tempInput", "value"),
     State("humidityInput", "value"),
-    State("lightIntensityInput", "value"),
+    # State("lightIntensityInput", "value"),
     prevent_initial_call=True
 )
 
