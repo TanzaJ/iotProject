@@ -6,6 +6,7 @@ import email
 from email.header import decode_header
 import threading
 import Freenove_DHT as DHT
+import Mqtt_Reader as MQTT
 import RPi.GPIO as GPIO
 from time import sleep
 import sqlite3
@@ -171,6 +172,7 @@ def get_user_profile(n_clicks):
     Output("temperatureHeading", "children"),
     Output("humidity_data", "value"),
     Output("humidityHeading", "children"),
+    Output("lightIntensityInput", "value"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     State("loaded-user-profile", "data"),
     prevent_initial_call=True
@@ -181,6 +183,7 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
+    light = LightRead()
 #loaded_user_profile['tempThreshold']
     if (temperature > 24 and canSend):
         send_test_email(temperature)
@@ -189,7 +192,7 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     user_response = check_email_for_user_response()
     if user_response == "fanOn":
         return user_response, temperature, temperature, humidity, humidity
-    return no_update, temperature, temperature, humidity, humidity
+    return no_update, temperature, temperature, humidity, humidity, light
 
 # callback for saving preferences
 @app.callback(
@@ -357,6 +360,11 @@ def dhtReading(sensor_index):
     sensor_data['humidity'] = dht.humidity
     print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
     return dht.temperature, dht.humidity
+
+def LightRead():
+    light = MQTT.PhotoSensor("192.168.0.116")
+    print("Light: %f \t"%(light.getValue()))
+    return light.getValue()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
