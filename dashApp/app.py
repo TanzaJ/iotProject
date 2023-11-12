@@ -132,7 +132,7 @@ app.layout = html.Div([
         html.Img(src="assets/images/phase1On.png", id="lightImg"),
         html.Div(id="lightText", children=[
             html.H2("Current Light Intensity"),
-            html.H2("495", style={"color": "#FFCA10"})
+            html.H2("495", style={"color": "#FFCA10"}, id="lightNum"),
         ])
     ]),
 
@@ -172,7 +172,7 @@ def get_user_profile(n_clicks):
     Output("temperatureHeading", "children"),
     Output("humidity_data", "value"),
     Output("humidityHeading", "children"),
-    Output("lightIntensityInput", "value"),
+    Output("lightNum", "value"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     State("loaded-user-profile", "data"),
     prevent_initial_call=True
