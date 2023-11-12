@@ -364,7 +364,7 @@ def dhtReading(sensor_index):
 def LightRead():
     num = int(MQTT.getValue())
     print("Light: %f \t"%(num))
-    return num
+    return MQTT.getValue()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
