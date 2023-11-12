@@ -15,13 +15,14 @@ def on_connect(client, usedata, flags, rc):
         print("connection failded")
         
 def on_message(client, userdata, message):
-    print(str(message.topic) + ": " + str(message.payload.decode("utf-8")))
+    photoData = int(message.payload.decode("utf-8"), 2)
+    print(str(message.topic) + ": " + str(photoData))
 
 connected = False
 MessageReceived = False
 photoData = "0"
 port = 1883
-mqtt_topic = "Light_Sensor"
+mqtt_topic = "LightData"
 mqtt_broker_ip = "192.168.0.116"
 
 def getValue():
@@ -30,7 +31,10 @@ def getValue():
 client = mqtt.Client("Light REader")
 
 client.on_connect = on_connect
+client.on_message = on_message
+
 client.connect(mqtt_broker_ip, port=port)
+
 client.loop_start()
 client.subscribe(mqtt_topic)
 while connected != True:
@@ -38,6 +42,5 @@ while connected != True:
 
 while MessageReceived != True:
     time.sleep(0.2)
-client.on_message = on_message
 client.loop_stop()
 

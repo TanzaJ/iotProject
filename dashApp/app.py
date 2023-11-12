@@ -6,6 +6,7 @@ import email
 from email.header import decode_header
 import threading
 import Freenove_DHT as DHT
+import asyncio
 import Mqtt_Reader as MQTT
 import RPi.GPIO as GPIO
 from time import sleep
@@ -361,7 +362,7 @@ def dhtReading(sensor_index):
     print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
     return dht.temperature, dht.humidity
 
-def LightRead():
+async def LightRead():
     print("Light: %f \t"%(MQTT.getValue()))
     return MQTT.getValue()
 
