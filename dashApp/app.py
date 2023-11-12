@@ -225,7 +225,7 @@ def update_database(updated_user_profile):
     Output("nameInput", "value"),
     Output("tempInput", "value"),
     Output("humidityInput", "value"),
-    Output("lightIntensityInput", "value"),
+    #Output("lightIntensityInput", "value"),
     Output("profilepic", "src"),
     Input("loaded-user-profile", "data"),  # Use a store to store preferences
     prevent_initial_call=True
