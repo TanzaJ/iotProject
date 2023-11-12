@@ -172,7 +172,7 @@ def get_user_profile(n_clicks):
     Output("temperatureHeading", "children"),
     Output("humidity_data", "value"),
     Output("humidityHeading", "children"),
-    Output("lightNum", "value"),
+    Output("lightNum", "children"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     State("loaded-user-profile", "data"),
     prevent_initial_call=True
