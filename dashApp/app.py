@@ -132,7 +132,7 @@ app.layout = html.Div([
         html.Img(src="assets/images/phase1On.png", id="lightImg"),
         html.Div(id="lightText", children=[
             html.H2("Current Light Intensity"),
-            html.H2("495", style={"color": "#FFCA10"}, id="lightNum"),
+            html.H2(id="humidityHeading", style={"color": "#FFCA10"}),
         ])
     ]),
 
