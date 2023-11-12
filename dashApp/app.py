@@ -362,9 +362,8 @@ def dhtReading(sensor_index):
     return dht.temperature, dht.humidity
 
 def LightRead():
-    light = MQTT.PhotoSensor("192.168.0.116")
-    print("Light: %f \t"%(light.getValue()))
-    return light.getValue()
+    print("Light: %f \t"%(MQTT.getValue()))
+    return MQTT.getValue()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
