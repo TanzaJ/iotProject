@@ -5,12 +5,12 @@ Written for my Instructable - "How to use MQTT with the Raspberry Pi and ESP8266
 """
 import paho.mqtt.client as mqtt
 
-photoData = ""
+photoData = "0"
 mqtt_topic = "Light_Sensor"
 mqtt_broker_ip = "192.168.0.116"
 
-def getValue(self):
-    return self.photoData
+def getValue():
+    return photoData
 # Don't forget to change the variables for the MQTT broker!
 
 # These functions handle what happens when the MQTT client connects
