@@ -16,7 +16,8 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # List all pins for sensor (James)
-sensor_pins = [18, 23, 24]
+sensor_pins = [18]
+led_pin = 13
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 canSend = True
 
@@ -24,6 +25,8 @@ motor_pins = [22, 27, 17]
 GPIO.setup(motor_pins[0],GPIO.OUT)
 GPIO.setup(motor_pins[1],GPIO.OUT)
 GPIO.setup(motor_pins[2],GPIO.OUT)
+
+GPIO.setup(led_pin,GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
 receiver_email = "hajimeadams289@gmail.com"
@@ -130,7 +133,7 @@ app.layout = html.Div([
 
     # Light section
     html.Div(className="container", id="light", children=[
-        html.Img(src="assets/images/phase1On.png", id="lightImg"),
+        html.Img(src="assets/images/phase1Off.png", id="lightImg"),
         html.Div(id="lightText", children=[
             html.H2("Current Light Intensity"),
             html.H2(id="lightNum", style={"color": "#FFCA10"}),
@@ -174,6 +177,7 @@ def get_user_profile(n_clicks):
     Output("humidity_data", "value"),
     Output("humidityHeading", "children"),
     Output("lightNum", "children"),
+    Output("lightImg", "src"),
     Input("readSensorsAndEmailInterval", "n_intervals"),
     State("loaded-user-profile", "data"),
     prevent_initial_call=True
@@ -186,15 +190,24 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     temperature, humidity = dhtReading(sensor_pins[0])
     light = MQTT.getValue()
     print("light: " + str(light))
-#loaded_user_profile['tempThreshold']
-    if (temperature > 24 and canSend):
+    print(light)
+    print(loaded_user_profile['lightIntensityThreshold'])
+    imgsrc = ""
+    if (int(light) < int(loaded_user_profile['lightIntensityThreshold'])):
+        GPIO.output(led_pin, GPIO.HIGH)
+        imgsrc = "assets/images/phase1On.png"
+    else:
+        GPIO.output(led_pin, GPIO.LOW)
+        imgsrc = "assets/images/phase1Off.png"
+        
+    if (temperature > loaded_user_profile['tempThreshold'] and canSend):
         send_test_email(temperature)
         canSend = False
     
     user_response = check_email_for_user_response()
     if user_response == "fanOn":
-        return user_response, temperature, temperature, humidity, humidity
-    return no_update, temperature, temperature, humidity, humidity, light
+        return user_response, temperature, temperature, humidity, humidity, imgsrc
+    return no_update, temperature, temperature, humidity, humidity, light, imgsrc
 
 # callback for saving preferences
 @app.callback(
@@ -204,7 +217,7 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     State("nameInput", "value"),
     State("tempInput", "value"),
     State("humidityInput", "value"),
-    # State("lightIntensityInput", "value"),
+    State("lightIntensityInput", "value"),
     prevent_initial_call=True
 )
 
