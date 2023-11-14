@@ -1,11 +1,11 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-const char* ssid = "TP-Link_2AD8";
-const char* password = "14730078";
+const char* ssid = "farouk's phone";
+const char* password = "alloallo1";
 //const char* ssid = "TP-LINK_Guest_B043";
 //const char* password = "63260588";
 
-const char* mqtt_server = "192.168.0.110";
+const char* mqtt_server = "192.168.58.113";
 WiFiClient vanieriot;
 PubSubClient client(vanieriot);
 
@@ -66,11 +66,12 @@ void setup() {
 }
 void loop() {
   value = analogRead(pResistor);
-  String data = String(value, 2);
+  char data[4];
+  String(value).toCharArray(data, 4);
 
   Serial.println("Light intensity is: ");
   Serial.println (value);
-  client.publish("LightData", data.toCharArray());
+  client.publish("LightData", data);
   Serial.println ("published");  
   if (!client.connected()) {
     reconnect();

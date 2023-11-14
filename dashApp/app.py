@@ -45,7 +45,7 @@ app.layout = html.Div([
     html.Link(href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap", rel="stylesheet"),
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
-    dcc.Interval(id="readSensorsAndEmailInterval", interval=5000),
+    dcc.Interval(id="readSensorsAndEmailInterval", interval=7500),
     dcc.Store(id='loaded-user-profile', storage_type='session'),
     # User preference section
     html.Div(className="container", id="profile", children=[
@@ -184,7 +184,8 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     
     print("Measurement counts: ", n_intervals)
     temperature, humidity = dhtReading(sensor_pins[0])
-    light = LightRead()
+    light = MQTT.getValue()
+    print("light: " + str(light))
 #loaded_user_profile['tempThreshold']
     if (temperature > 24 and canSend):
         send_test_email(temperature)
@@ -226,7 +227,7 @@ def update_database(updated_user_profile):
     Output("nameInput", "value"),
     Output("tempInput", "value"),
     Output("humidityInput", "value"),
-    #Output("lightIntensityInput", "value"),
+    Output("lightIntensityInput", "value"),
     Output("profilepic", "src"),
     Input("loaded-user-profile", "data"),  # Use a store to store preferences
     prevent_initial_call=True
@@ -367,4 +368,4 @@ async def LightRead():
     return MQTT.getValue()
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True)

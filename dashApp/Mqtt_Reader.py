@@ -8,39 +8,44 @@ import time
 
 def on_connect(client, usedata, flags, rc):
     if rc == 0:
-        print("client is connected")
         global connected
         connected = True
-    else:
-        print("connection failded")
+    # else:
+        # print("connection failded")
         
 def on_message(client, userdata, message):
-    photoData = int(message.payload.decode("utf-8"), 2)
-    print(str(message.topic) + ": " + str(photoData))
-
-connected = False
-MessageReceived = False
-photoData = "0"
-port = 1883
-mqtt_topic = "LightData"
-mqtt_broker_ip = "192.168.0.116"
+    global photoData
+    photoData = int(message.payload.decode("utf-8"))
+    global messageReceived
+    messageReceived = True
+    # print(str(message.topic) + ": " + str(photoData))
 
 def getValue():
+    global connected
+    connected = False
+    global messageReceived
+    messageReceived = False
+    port = 1883
+    mqtt_topic = "LightData"
+    mqtt_broker_ip = "192.168.58.113"
+
+    client = mqtt.Client("Light REader")
+
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    client.connect(mqtt_broker_ip, port=port)
+
+    client.loop_start()
+    client.subscribe(mqtt_topic)
+    while connected != True:
+        time.sleep(0.2)
+
+    while messageReceived != True:
+        time.sleep(0.2)
+    client.loop_stop()
+    client.loop_stop()
+
+    global photoData
     return photoData
-
-client = mqtt.Client("Light REader")
-
-client.on_connect = on_connect
-client.on_message = on_message
-
-client.connect(mqtt_broker_ip, port=port)
-
-client.loop_start()
-client.subscribe(mqtt_topic)
-while connected != True:
-    time.sleep(0.2)
-
-while MessageReceived != True:
-    time.sleep(0.2)
-client.loop_stop()
 
