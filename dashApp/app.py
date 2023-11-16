@@ -12,6 +12,20 @@ import RPi.GPIO as GPIO
 from time import sleep
 import sqlite3
 
+global dht_temp
+global dht_humidity
+global mqtt_light
+global can_send_email
+global waiting_on_response
+global fan_state
+
+dht_temp = 0
+dht_humidity = 0
+mqtt_light = 0
+can_send_email = True
+waiting_on_response = False
+fan_state = "fanOff"
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
@@ -19,7 +33,6 @@ GPIO.setwarnings(False)
 sensor_pins = [18]
 led_pin = 13
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
-canSend = True
 
 motor_pins = [22, 27, 17]
 GPIO.setup(motor_pins[0],GPIO.OUT)
@@ -29,7 +42,7 @@ GPIO.setup(motor_pins[2],GPIO.OUT)
 GPIO.setup(led_pin,GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
-receiver_email = "hajimeadams289@gmail.com"
+receiver_email = "@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -49,6 +62,7 @@ app.layout = html.Div([
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
     dcc.Interval(id="readSensorsAndEmailInterval", interval=7500),
+    dcc.Interval(id="dht_light_thread_interval", interval=1000),
     dcc.Store(id='loaded-user-profile', storage_type='session'),
     # User preference section
     html.Div(className="container", id="profile", children=[
@@ -153,10 +167,60 @@ app.layout = html.Div([
     html.Button("Get User Profile", id="get-user-profile-button"),
 ])
 
-# Output("nameInput", "children"),
-#     Output("tempInput", "value"),
-#     Output("humidityInput", "value"),
-#     Output("lightIntensityInput", "value"),
+"""
+Updates:
+Temperature Gauge
+Temperature Value Heading
+Humidity Gauge
+Humidity Value Heading
+Light Value Heading
+Light On/Off Image
+
+If Temp value is over user's threshold
+    Send email
+If Light value is under user's threshold
+    Turn light image on
+Else
+    Turn light image off
+"""
+@app.callback(
+    Output("fan_state", "children", allow_duplicate=True),
+    Output("temp", "value"),
+    Output("temperatureHeading", "children"),
+    Output("humidity_data", "value"),
+    Output("humidityHeading", "children"),
+    Output("lightNum", "children"),
+    Output("lightImg", "src"),
+    Input("dht_light_thread_interval", "n_intervals"),
+    State("loaded-user-profile", "data"),
+    prevent_initial_call=True
+)
+def dht_light_thread_update_page(n_intervals, loaded_user_profile):
+    global dht_temp
+    global dht_humidity
+    global mqtt_light
+    global can_send_email
+    global waiting_on_response
+    global fan_state
+
+    imgsrc = "assets/images/phase1Off.png"
+    if (loaded_user_profile is not None):
+        if (float(dht_temp) > float(loaded_user_profile['tempThreshold']) and can_send_email and not waiting_on_response and fan_state == "fanOff"):
+            can_send_email = False
+
+        if (int(mqtt_light) < int(loaded_user_profile['lightIntensityThreshold'])):
+            GPIO.output(led_pin, GPIO.HIGH)
+            imgsrc = "assets/images/phase1On.png"
+        else:
+            GPIO.output(led_pin, GPIO.LOW)
+    # user_response = check_email_for_user_response()
+    # if (user_response != "fanOn"):
+    #     user_response = no_update
+    return fan_state, dht_temp, dht_temp, dht_humidity, dht_humidity, mqtt_light, imgsrc 
+
+"""
+When "Get user profile" button is clicked, get user's profile from database and store it in dcc.store
+"""
 @app.callback(
     Output("loaded-user-profile", "data"),
     Input("get-user-profile-button", "n_clicks"),
@@ -168,48 +232,11 @@ def get_user_profile(n_clicks):
     res = cur.execute("SELECT * FROM Profile WHERE UserID = 1")
     profile = res.fetchone()
     return {'userID': profile[0], 'name': profile[1], 'tempThreshold': profile[2], 'humidityThreshold': profile[3], 'lightIntensityThreshold': profile[4], 'profilePic': profile[5]}
-    #return profile[1], profile[2], profile[3], profile[4]
-
-@app.callback(
-    Output("fan_state", "children", allow_duplicate=True),
-    Output("temp", "value"),
-    Output("temperatureHeading", "children"),
-    Output("humidity_data", "value"),
-    Output("humidityHeading", "children"),
-    Output("lightNum", "children"),
-    Output("lightImg", "src"),
-    Input("readSensorsAndEmailInterval", "n_intervals"),
-    State("loaded-user-profile", "data"),
-    prevent_initial_call=True
-)
-def sensor_and_email_reader(n_intervals, loaded_user_profile):
-    global sensor_data
-    global canSend
     
-    print("Measurement counts: ", n_intervals)
-    temperature, humidity = dhtReading(sensor_pins[0])
-    light = MQTT.getValue()
-    print("light: " + str(light))
-    print(light)
-    print(loaded_user_profile['lightIntensityThreshold'])
-    imgsrc = ""
-    if (int(light) < int(loaded_user_profile['lightIntensityThreshold'])):
-        GPIO.output(led_pin, GPIO.HIGH)
-        imgsrc = "assets/images/phase1On.png"
-    else:
-        GPIO.output(led_pin, GPIO.LOW)
-        imgsrc = "assets/images/phase1Off.png"
-        
-    if (temperature > loaded_user_profile['tempThreshold'] and canSend):
-        send_test_email(temperature)
-        canSend = False
     
-    user_response = check_email_for_user_response()
-    if user_response == "fanOn":
-        return user_response, temperature, temperature, humidity, humidity, imgsrc
-    return no_update, temperature, temperature, humidity, humidity, light, imgsrc
-
-# callback for saving preferences
+"""
+When "Save Profile" button is clicked, call update_database() and update dcc.store
+"""
 @app.callback(
     Output("loaded-user-profile", "data", allow_duplicate = True),  # Use a store to store preferences
     Input("saveProfileBtn", "n_clicks"),
@@ -220,13 +247,13 @@ def sensor_and_email_reader(n_intervals, loaded_user_profile):
     State("lightIntensityInput", "value"),
     prevent_initial_call=True
 )
-
 def save_preferences(n_clicks, loaded_user_profile, name_value, temp_value, humidity_value, light_intensity_value):
     updated_user_profile = {'userID': loaded_user_profile['userID'], 'name': name_value, 'tempThreshold': temp_value, 'humidityThreshold': humidity_value, 'lightIntensityThreshold': light_intensity_value, 'profilePic': loaded_user_profile['profilePic']}
-    #user_preferences = {'temp': temp_value, 'humidity': humidity_value, 'light_intensity': light_intensity_value}
     update_database(updated_user_profile)
     return updated_user_profile
-
+"""
+Update current user's profile in database
+"""
 def update_database(updated_user_profile):
     con = sqlite3.connect("profiles_db.db")
     cur = con.cursor()
@@ -236,6 +263,9 @@ def update_database(updated_user_profile):
     con.close()
     return  # Reset the button click count
 
+"""
+When dcc.store is updated, load all the profile values into all the fields
+"""
 @app.callback(
     Output("nameInput", "value"),
     Output("tempInput", "value"),
@@ -250,19 +280,26 @@ def load_user_profile(loaded_user_profile):
         return no_update, no_update, no_update, no_update, no_update
     return loaded_user_profile['name'], loaded_user_profile['tempThreshold'], loaded_user_profile['humidityThreshold'], loaded_user_profile['lightIntensityThreshold'] , loaded_user_profile['profilePic'] 
 
+"""
+When the "Fan control" button is clicked, toggle "Fan state" hidden p
+"""
 @app.callback(
     Output("fan_state", "children"),
     Input("fan-control-button", "n_clicks"),
-    State("fan_state", "children"),
     prevent_initial_call=True
 )
-def toggle_fanState(n_clicks, fan_state):
+def toggle_fanState(n_clicks):
+    global fan_state
     if fan_state == "fanOff":
-
+        fan_state = "fanOn"
         return "fanOn"
     elif fan_state == "fanOn":
+        fan_state = "fanOff"
         return "fanOff"
 
+"""
+When "Fan state" hidden p is updated, set fan image and fan button to the new state by calling the functions below
+"""
 @app.callback(
     Output("fan-img", "src"),
     Output("fan-control-button", "children"),
@@ -274,33 +311,34 @@ def update_fan(fan_state):
         return turnFanOff()
     elif fan_state == "fanOn":
         return turnFanOn()
-
 def turnFanOn():
     GPIO.output(motor_pins[0],GPIO.HIGH)
     GPIO.output(motor_pins[1],GPIO.LOW)
     GPIO.output(motor_pins[2],GPIO.HIGH)
     return app.get_asset_url('images/spinningFan.gif'), "Turn Off"
-
 def turnFanOff():
     GPIO.output(motor_pins[0],GPIO.LOW)
     GPIO.output(motor_pins[1],GPIO.LOW)
     GPIO.output(motor_pins[2],GPIO.LOW)
     return app.get_asset_url('images/spinningFan.png'), "Turn On"
 
-#email sending and receiving logic:
+"""
+When "Send email" button is clicked, send an email asking to turn the fan on
+"""
 @app.callback(
     Output("email-status", "children"),
     Input("send-email-button", "n_clicks"),
     prevent_initial_call=True
 )
-
 def send_test_email(temp):
     # Manually send a test email
     subject = "Temperature warning!"
     body = f"The temperature is: {temp} which is greater than 24\n If you wish to turn the fan on reply 'yes' in all caps"
     send_email(subject, body)
     return "Test email sent."
-
+"""
+Connect to smtp server and send email
+"""
 def send_email(subject, body):
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
@@ -312,8 +350,17 @@ def send_email(subject, body):
     except Exception as e:
         print("Email could not be sent. Error:", str(e))
 
+"""
+Check for unread emails.
+If there is an unread email
+    Set 'can_send_email' to True
+    If first word in email is 'YES'
+        Return 'fanOn'
+"""
 def check_email_for_user_response():
-    global canSend
+    global can_send_email
+    global waiting_on_response
+    global fan_state
     try:
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(sender_email, password)
@@ -342,43 +389,88 @@ def check_email_for_user_response():
 
                         first_word = email_body.strip().split()[0]
 
+                        waiting_on_response = False
                         if first_word.upper() == "YES":
                             print("Received 'YES' response. Turning on the fan...")
-                            canSend = True
+                            fan_state = "fanOn"
                             return "fanOn"
                         else:
-                            canSend = True
                             print("No 'YES' found in the email body.")
         mail.logout()
     except Exception as e:
         print("Email retrieval error:", str(e))
 
+"""
+Code to loop for dht_thread
+Reads temperature and humidity data from DHT and sets it to global variable
+"""
+def dht_loop():
+    global dht_temp
+    global dht_humidity
 
-#Sensor Functions: (James)
+    dht = DHT.DHT(18)
+    while True:
+        for i in range(0,15):
+            chk = dht.readDHT11()
+            if (chk is dht.DHTLIB_OK):
+                break
+            sleep(0.1)
+        dht_temp, dht_humidity = dht.temperature, dht.humidity
 
-# (James)
-            
-#DHT (James)
-def dhtReading(sensor_index):
-    dht = DHT.DHT(sensor_index) #create a DHT class object
+"""
+Code to loop for mqtt_thread
+Reads light data from MQTT server and sets it to global variable
+"""
+def mqtt_loop():
+    """
+    Python MQTT Subscription client - No Username/Password
+    Thomas Varnish (https://github.com/tvarnish), (https://www.instructables.com/member/Tango172)
+    Written for my Instructable - "How to use MQTT with the Raspberry Pi and ESP8266"
+    """
+    import paho.mqtt.client as mqtt
 
-    for i in range(0,15):
-        chk = dht.readDHT11() #read DHT11 and get a return value. Then determine whether
-        #data read is normal according to the return value.
-        if (chk is dht.DHTLIB_OK): #read DHT11 and get a return value. Then determine
-        #whether data read is normal according to the return value.
-            print("DHT11,OK!")
-            break
-        time.sleep(0.1)
+    global mqtt_light
+    global connected
 
-    sensor_data['temperature'] = dht.temperature
-    sensor_data['humidity'] = dht.humidity
-    print("Humidity : %.2f, \t Temperature : %.2f \n"%(dht.humidity,dht.temperature))
-    return dht.temperature, dht.humidity
+    def on_message(client, userdata, message):
+        global mqtt_light
+        mqtt_light = int(message.payload.decode("utf-8"))
 
-async def LightRead():
-    print("Light: %f \t"%(MQTT.getValue()))
-    return MQTT.getValue()
+    port = 1883
+    mqtt_topic = "LightData"
+    mqtt_broker_ip = "192.168.58.113"
+    client = mqtt.Client("Light Reader")
+    client.on_message = on_message
+    client.connect(mqtt_broker_ip, port=port)
+    client.subscribe(mqtt_topic)
+
+    while True:
+        client.loop_start()
+        client.loop_stop()
+
+def email_loop():
+    global can_send_email
+    global waiting_on_response
+    global dht_temp
+
+    while True:
+        if (can_send_email != True and waiting_on_response != True):
+            send_test_email(dht_temp)
+            can_send_email = True
+            waiting_on_response = True
+        if (can_send_email and waiting_on_response):
+            check_email_for_user_response()
+            sleep(2)
+
 
 if __name__ == '__main__':
+    dht_thread = threading.Thread(target=dht_loop)
+    dht_thread.start()
+
+    mqtt_thread = threading.Thread(target=mqtt_loop)
+    mqtt_thread.start()
+
+    email_thread = threading.Thread(target=email_loop)
+    email_thread.start()
+
     app.run(debug=True)

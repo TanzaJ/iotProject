@@ -79,5 +79,5 @@ void loop() {
   if(!client.loop())
     client.connect("vanieriot");
   
-  delay(5000);
+  delay(1000);
  }
