@@ -526,12 +526,12 @@ def email_loop():
 
 if __name__ == '__main__':
     dht_thread = threading.Thread(target=dht_loop)
-    # dht_thread.start()
+    dht_thread.start()
 
     mqtt_thread = threading.Thread(target=mqtt_loop)
-    # mqtt_thread.start()
+    mqtt_thread.start()
 
     email_thread = threading.Thread(target=email_loop)
-    # email_thread.start()
+    email_thread.start()
 
     app.run(debug=True)
