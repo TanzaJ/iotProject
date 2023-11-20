@@ -33,14 +33,15 @@ h5 {
 }
 
 #profile>div {
-  padding: 10px;
   flex-direction: column;
   justify-content: center;
+  margin: 10px;
 }
 
 #profileDiv1 {
   width: 10%;
-  height: min-content;
+  height: 100%;
+  position: relative;
 }
 
 #profileDiv2 {
@@ -84,7 +85,7 @@ h5 {
   height: 95%;
 }
 
-#saveProfileBtn {
+#saveProfileBtn, #savePfpBtn, #closePopupBtn {
   height: 50%;
   width: 100%;
   text-wrap: wrap;
@@ -97,19 +98,55 @@ h5 {
 }
 
 
-#saveProfileBtn:hover {
+#saveProfileBtn:hover, #savePfpBtn:hover, #closePopupBtn:hover {
   background-color: #e79492;
 }
 
-#saveProfileBtn:active {
+#saveProfileBtn:active, #savePfpBtn:active, #closePopupBtn:active {
   background-color: #9c403f;
+}
+
+#profilepiccontainer {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
 }
 
 #profilepic {
   height: 100%;
   width: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#profilepicedit {
+  position: absolute;
+  top: 0;
+  left: 0;
   object-fit: contain;
   border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  transition-duration: 0.2s;
+  opacity: 0;
+}
+
+#whitePencilImg {
+  width: 20%;
+  height: 20%;
+}
+
+#profilepicedit:hover {
+  opacity: 1;
 }
 
 #tempHumFan {

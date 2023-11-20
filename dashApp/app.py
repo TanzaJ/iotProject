@@ -1,4 +1,5 @@
-from dash import Dash, dcc, html, Input, Output, State, no_update
+from dash import Dash, dcc, html, Input, Output, State, no_update, ctx
+import dash_bootstrap_components as dbc
 import dash_daq as daq
 import smtplib
 import imaplib
@@ -59,6 +60,7 @@ app.layout = html.Div([
     html.Link(rel="preconnect", href="https://fonts.googleapis.com"),
     html.Link(rel="preconnect", href="https://fonts.gstatic.com"),
     html.Link(href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap", rel="stylesheet"),
+    html.Link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css", rel="stylesheet", integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"),
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
     dcc.Interval(id="readSensorsAndEmailInterval", interval=7500),
@@ -67,7 +69,30 @@ app.layout = html.Div([
     # User preference section
     html.Div(className="container", id="profile", children=[
         html.Div(className="container", id="profileDiv1", children=[
-            html.Img(src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAPFBMVEXk5ueutLepsLPo6uursbXJzc/p6+zj5ea2u76orrKvtbi0ubzZ3N3O0dPAxcfg4uPMz9HU19i8wcPDx8qKXtGiAAAFTElEQVR4nO2d3XqzIAyAhUD916L3f6+f1m7tVvtNINFg8x5tZ32fQAIoMcsEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQTghAJD1jWtnXJPP/54IgNzZQulSmxvTH6oYXX4WS+ivhTbqBa1r26cvCdCu6i0YXbdZ0o4A1rzV+5IcE3YE+z58T45lqo7g1Aa/JY5tgoqQF3qb382x7lNzBLcxft+O17QUYfQI4IIeklKsPSN4i6LKj/7Zm8n99RbHJpEw9gEBXNBpKIYLJqKYRwjOikf//r+J8ZsVuacbqCMNleI9TqGLGqMzhnVdBOdd6F/RlrFijiCoVMk320CBIahUxTWI0KKEcJqKbMdpdJb5QvdHq6wCI5qhKlgGMS/RBHkubWDAE+QZxB4xhCyDiDkLZxgGEVdQldzSKbTIhmZkFkSEPcVvmBn2SMuZB9od7fQDsMiDdKJjFUSCQarM5WirZ3C2TT/htYnyPcPfgrFHWz0BI74gr6J/IZiGUxAZGQLqmvQLTrtE/Go4YxhVRIpEw+sww1IIcqr5NKmUUzLF3d4/qPkYIp2T/obPuemlojFUR4t9Q2Vojhb7BmgElWHzLPH8hucfpefPNFTVgs9h1AdU/Pin96vwWbWdf+X9Absn3OdO34aMdsDnP8WgKYisTqI6CkNGqZQo1XA6Ef6AU32SJzOcBukHPF07/xNSgmHKa5BOhtezv6mA/rYJpwXNAnbRZ1XuF3BzDcO3vpA3+ny2909gbqE4hhD3LIPhLLyBNhPZvbZ3B+3tPYa18A7auSlXQayKwTPNLKDcuOB0xPYKDPFTkWsevQPRZ1J8Hji9I1KQ34r7hZhrwNwOZ97QxNx0drwn4QI0wQk1DcEsfKCWKdxVvxPSNUIp/knmAXT+nT+Ko3+0H96rcNb3m1fx7MBTJdeBJ7uFcWsc0wvgAsC4pROW0l2inbAmIBv/7GZmuhQH6API2rr8T0e6yuZJ+80A9LZeG62T3tik31XwxtwZcizKuTHkMjB1WdZde4Kmic/A5ZI3rr1ae21d08PlVHYfAaxw9G9CYRbJ+8ZdbTcMRV1XM3VdF0M32vtoTdZ0+u29s0OttJ5bz64UwinjaFMVY9vkqc3KKSxN21Xl+0L4Q3Vuv1tYl0pqnX6ms4XetFz7gdZVAgUEoJntfOUe4ZwsHd9FzqQ3Vv6xe41l0XJcqcKl6TZvlv7ClAW3BsqQW4X7ypApB8dmTgK4IX5wvqIVj33HtD2qSG4BqznxdIefL27Y4sahi0MdIdvUsDva8agGGbCtITmCY31MHD2O0uIdh/0rJDQ1VX5Zdxz3rR2QDbv6qXl9vudzqQtGm1Jv9LDXOsfvvB7VcZ8PDKD0mQ1VHPYQ9O+Yj4hR1IUD8rBnn3ho2m8oQMxbCFiKlL2ioSW5heeJqegED52CzxCtcGD3Kv8Wms9EYLyUhwaFIhSMBClevWEmiK/Iaogu4H7sg6ppQhQG8RUqivuTGOAJOg6FfgW0q0M0PQMRMEgXaeNf3SYDZ8PIMI0+wHgr/MgN7wYwpiLjCCqM6ydUDZLQiB6nDdNC8SDyig3jPPpFXGcC9O8BUBDVmgBY59E7Md/35Loe/UVEECEJwYggJjELZ4J71SaQSBeC02n4Da29CayJNA28SAhd2CQyC1Xw6pSmGSINQVuMhAZp4DClan9MgmkDDNmezqwS8sgtlXK/EPBhoaSmYVC/F7IO1jQEdHOlabpKh3+jzLQSTUiq4X2I+Ip/zU8rlaqAvkS21ElR+gqu3zbjjL+hIAiCIAiCIAiCIAiCsCf/AKrfVhSbvA+DAAAAAElFTkSuQmCC", id="profilepic")
+            html.Div(id="profilepiccontainer", children=[
+            html.Img(src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAPFBMVEXk5ueutLepsLPo6uursbXJzc/p6+zj5ea2u76orrKvtbi0ubzZ3N3O0dPAxcfg4uPMz9HU19i8wcPDx8qKXtGiAAAFTElEQVR4nO2d3XqzIAyAhUD916L3f6+f1m7tVvtNINFg8x5tZ32fQAIoMcsEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQTghAJD1jWtnXJPP/54IgNzZQulSmxvTH6oYXX4WS+ivhTbqBa1r26cvCdCu6i0YXbdZ0o4A1rzV+5IcE3YE+z58T45lqo7g1Aa/JY5tgoqQF3qb382x7lNzBLcxft+O17QUYfQI4IIeklKsPSN4i6LKj/7Zm8n99RbHJpEw9gEBXNBpKIYLJqKYRwjOikf//r+J8ZsVuacbqCMNleI9TqGLGqMzhnVdBOdd6F/RlrFijiCoVMk320CBIahUxTWI0KKEcJqKbMdpdJb5QvdHq6wCI5qhKlgGMS/RBHkubWDAE+QZxB4xhCyDiDkLZxgGEVdQldzSKbTIhmZkFkSEPcVvmBn2SMuZB9od7fQDsMiDdKJjFUSCQarM5WirZ3C2TT/htYnyPcPfgrFHWz0BI74gr6J/IZiGUxAZGQLqmvQLTrtE/Go4YxhVRIpEw+sww1IIcqr5NKmUUzLF3d4/qPkYIp2T/obPuemlojFUR4t9Q2Vojhb7BmgElWHzLPH8hucfpefPNFTVgs9h1AdU/Pin96vwWbWdf+X9Absn3OdO34aMdsDnP8WgKYisTqI6CkNGqZQo1XA6Ef6AU32SJzOcBukHPF07/xNSgmHKa5BOhtezv6mA/rYJpwXNAnbRZ1XuF3BzDcO3vpA3+ny2909gbqE4hhD3LIPhLLyBNhPZvbZ3B+3tPYa18A7auSlXQayKwTPNLKDcuOB0xPYKDPFTkWsevQPRZ1J8Hji9I1KQ34r7hZhrwNwOZ97QxNx0drwn4QI0wQk1DcEsfKCWKdxVvxPSNUIp/knmAXT+nT+Ko3+0H96rcNb3m1fx7MBTJdeBJ7uFcWsc0wvgAsC4pROW0l2inbAmIBv/7GZmuhQH6API2rr8T0e6yuZJ+80A9LZeG62T3tik31XwxtwZcizKuTHkMjB1WdZde4Kmic/A5ZI3rr1ae21d08PlVHYfAaxw9G9CYRbJ+8ZdbTcMRV1XM3VdF0M32vtoTdZ0+u29s0OttJ5bz64UwinjaFMVY9vkqc3KKSxN21Xl+0L4Q3Vuv1tYl0pqnX6ms4XetFz7gdZVAgUEoJntfOUe4ZwsHd9FzqQ3Vv6xe41l0XJcqcKl6TZvlv7ClAW3BsqQW4X7ypApB8dmTgK4IX5wvqIVj33HtD2qSG4BqznxdIefL27Y4sahi0MdIdvUsDva8agGGbCtITmCY31MHD2O0uIdh/0rJDQ1VX5Zdxz3rR2QDbv6qXl9vudzqQtGm1Jv9LDXOsfvvB7VcZ8PDKD0mQ1VHPYQ9O+Yj4hR1IUD8rBnn3ho2m8oQMxbCFiKlL2ioSW5heeJqegED52CzxCtcGD3Kv8Wms9EYLyUhwaFIhSMBClevWEmiK/Iaogu4H7sg6ppQhQG8RUqivuTGOAJOg6FfgW0q0M0PQMRMEgXaeNf3SYDZ8PIMI0+wHgr/MgN7wYwpiLjCCqM6ydUDZLQiB6nDdNC8SDyig3jPPpFXGcC9O8BUBDVmgBY59E7Md/35Loe/UVEECEJwYggJjELZ4J71SaQSBeC02n4Da29CayJNA28SAhd2CQyC1Xw6pSmGSINQVuMhAZp4DClan9MgmkDDNmezqwS8sgtlXK/EPBhoaSmYVC/F7IO1jQEdHOlabpKh3+jzLQSTUiq4X2I+Ip/zU8rlaqAvkS21ElR+gqu3zbjjL+hIAiCIAiCIAiCIAiCsCf/AKrfVhSbvA+DAAAAAElFTkSuQmCC", 
+            id="profilepic"),
+            html.Div(id="profilepicedit", children=[
+                html.Img(id="whitePencilImg", src=app.get_asset_url("images/white_pencil.png"))
+            ]),
+            dbc.Modal(
+                [
+                dbc.ModalBody(id="modal-content", children=[
+                    html.Div(style={"width": "100%", "height": "100%", "display": "flex", "justify-content": "center", "align-items": "center"}, children=[
+                        html.Div(style={"margin-top": "20px", "width": "50%:", "border": "5px solid #222222", "border-radius": "20px", "background-color": "#525252", "display": "flex", "flex-direction": "column", "justify-content": "center", "align-items": "stretch"}, children=[
+                            html.H4(style={"margin": "10px"}, children="Enter link to new profile picture"),
+                            dcc.Input(value="idk", id="pfp_src_input", style={"margin": "0px 10px", "background-color": "transparent", "border": "none"}),
+                            html.Div(style={"display": "flex", "justify-content": "center", "align-items": "center"}, children=[
+                                html.Button(id="savePfpBtn", style={"margin": "10px"}, children="Save"),
+                                html.Button(id="closePopupBtn", style={"margin": "10px"}, children="Close")
+                            ])
+                        ])
+                    ])
+                ]),
+            ],
+            id="modal", className="container-fluid", style={"position": "absolute", "width": "100%", "height": "100%", "background-color": "rgba(0, 0, 0, 0.5)", "top": "0", "left": "0"}
+            )
+            ]),
         ]),
         html.Div(className="container", id="profileDiv2", children=[
             html.H5(style={"font-style": "italic"}, children="Welcome"),
@@ -165,6 +190,7 @@ app.layout = html.Div([
     html.Button("Send Test Email", id="send-email-button"),
     html.Div(id="email-status"),
     html.Button("Get User Profile", id="get-user-profile-button"),
+    html.Script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js", integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL")
 ])
 
 """
@@ -257,8 +283,8 @@ Update current user's profile in database
 def update_database(updated_user_profile):
     con = sqlite3.connect("profiles_db.db")
     cur = con.cursor()
-    cur.execute("UPDATE Profile SET name=?, TempThreshold=?, HumidityThreshold=?, LightIntensityThreshold=? WHERE UserID=?",
-                (updated_user_profile['name'], updated_user_profile['tempThreshold'], updated_user_profile['humidityThreshold'], updated_user_profile['lightIntensityThreshold'], updated_user_profile['userID']))
+    cur.execute("UPDATE Profile SET name=?, TempThreshold=?, HumidityThreshold=?, LightIntensityThreshold=?, ProfilePic=? WHERE UserID=?",
+                (updated_user_profile['name'], updated_user_profile['tempThreshold'], updated_user_profile['humidityThreshold'], updated_user_profile['lightIntensityThreshold'], updated_user_profile['profilePic'], updated_user_profile['userID']))
     con.commit()
     con.close()
     return  # Reset the button click count
@@ -400,6 +426,41 @@ def check_email_for_user_response():
     except Exception as e:
         print("Email retrieval error:", str(e))
 
+@app.callback(
+    Output("modal", "is_open"),
+    Output("pfp_src_input", "value"),
+    Output("loaded-user-profile", "data", allow_duplicate = True),
+    Input("profilepicedit", "n_clicks"),
+    Input("savePfpBtn", "n_clicks"),
+    Input("closePopupBtn", "n_clicks"),
+    State("loaded-user-profile", "data"),
+    State("pfp_src_input", "value"),
+    State("modal", "is_open"),
+    prevent_initial_call=True
+)
+def clicked_profile_pic(n_clicks1, n_clicks2, n_clicks3, loaded_user_profile, pfp_src_input, is_open):
+    if (is_open):
+        if ctx.triggered_id == "closePopupBtn":
+            return False, no_update, no_update
+        if ctx.triggered_id == "savePfpBtn":
+            loaded_user_profile['profilePic'] = pfp_src_input
+            update_database(loaded_user_profile)
+            return False, no_update, loaded_user_profile
+    else:
+        return True, loaded_user_profile['profilePic'], no_update
+    
+    # if ctx.triggered_id == "profilepicedit":
+    #     return True, loaded_user_profile['profilePic'], no_update
+    # if ctx.triggered_id == "closePopupBtn":
+    #     return False, no_update, no_update
+    # if ctx.triggered_id == "savePfpBtn":
+    #     loaded_user_profile['profilePic'] = pfp_src_input
+    #     update_database(loaded_user_profile)
+    #     return False, no_update, loaded_user_profile
+
+    # return False, no_update, no_update
+
+
 """
 Code to loop for dht_thread
 Reads temperature and humidity data from DHT and sets it to global variable
@@ -465,12 +526,12 @@ def email_loop():
 
 if __name__ == '__main__':
     dht_thread = threading.Thread(target=dht_loop)
-    dht_thread.start()
+    # dht_thread.start()
 
     mqtt_thread = threading.Thread(target=mqtt_loop)
-    mqtt_thread.start()
+    # mqtt_thread.start()
 
     email_thread = threading.Thread(target=email_loop)
-    email_thread.start()
+    # email_thread.start()
 
     app.run(debug=True)
