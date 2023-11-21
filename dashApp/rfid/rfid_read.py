@@ -3,7 +3,7 @@ import paho.mqtt.client as mqtt
 import time
 import RPi.GPIO as GPIO
 
-mqtt_broker_ip = "192.168.58.113"
+mqtt_broker_ip = "192.168.0.116"
 mqtt_topic_rfid = "RfidData"
 reader = SimpleMFRC522()
 

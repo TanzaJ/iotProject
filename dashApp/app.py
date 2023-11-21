@@ -501,11 +501,12 @@ def mqtt_loop():
     def on_message_rfid(client, userdata, message):
         global rfid_id
         rfid_id = int(message.payload.decode("utf-8"))
+        print(rfid_id)
 
     port = 1883
     mqtt_topic = "LightData"
     mqtt_topic_rfid = "RfidData"
-    mqtt_broker_ip = "192.168.58.113"
+    mqtt_broker_ip = "192.168.0.116"
     client = mqtt.Client("Light Reader")
     client.on_message = on_message
     client.connect(mqtt_broker_ip, port=port)
@@ -518,7 +519,8 @@ def mqtt_loop():
     while True:
         client.loop_start()
         client.loop_stop()
-
+        rfidClient.loop_start()
+        rfidClient.loop_stop()
 def email_loop():
     global can_send_email
     global waiting_on_response
