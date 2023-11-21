@@ -19,6 +19,7 @@ global mqtt_light
 global can_send_email
 global waiting_on_response
 global fan_state
+global rfid_id
 
 dht_temp = 0
 dht_humidity = 0
@@ -496,15 +497,24 @@ def mqtt_loop():
     def on_message(client, userdata, message):
         global mqtt_light
         mqtt_light = int(message.payload.decode("utf-8"))
+        
+    def on_message_rfid(client, userdata, message):
+        global rfid_id
+        rfid_id = int(message.payload.decode("utf-8"))
 
     port = 1883
     mqtt_topic = "LightData"
+    mqtt_topic_rfid = "RfidData"
     mqtt_broker_ip = "192.168.58.113"
     client = mqtt.Client("Light Reader")
     client.on_message = on_message
     client.connect(mqtt_broker_ip, port=port)
     client.subscribe(mqtt_topic)
-
+    
+    rfidClient = mqtt.Client("Rfid Reader")
+    rfidClient.on_message = on_message_rfid
+    rfidClient.connect(mqtt_broker_ip, port=port)
+    rfidClient.subscribe(mqtt_topic_rfid)
     while True:
         client.loop_start()
         client.loop_stop()
