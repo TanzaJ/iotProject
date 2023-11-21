@@ -9,6 +9,7 @@ import threading
 import Freenove_DHT as DHT
 import asyncio
 import Mqtt_Reader as MQTT
+import rfid.rfid_read as RFID
 import RPi.GPIO as GPIO
 from time import sleep
 import sqlite3
@@ -21,6 +22,7 @@ global waiting_on_response
 global fan_state
 global rfid_id
 
+profileChangeSwitch = False
 dht_temp = 0
 dht_humidity = 0
 mqtt_light = 0
@@ -521,6 +523,23 @@ def mqtt_loop():
         client.loop_stop()
         rfidClient.loop_start()
         rfidClient.loop_stop()
+        
+def CheckRfid():
+    while True:
+        global rfid_id
+        rfid = RFID.RFID()
+        
+        condition = isinstance(rfid_id, int)
+        if condition:
+            break
+        elif profileChangeSwitch:
+            profileChangeSwitch = False
+            break
+    print("Condition met. Stopping function.")
+    
+def CancelButton():
+    profileChangeSwitch = True
+
 def email_loop():
     global can_send_email
     global waiting_on_response
