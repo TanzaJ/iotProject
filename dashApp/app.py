@@ -6,12 +6,14 @@ import imaplib
 import email
 from email.header import decode_header
 import threading
-import Freenove_DHT as DHT
+# import Freenove_DHT as DHT
 import asyncio
-import Mqtt_Reader as MQTT
-import rfid.rfid_read as RFID
-import RPi.GPIO as GPIO
+# import Mqtt_Reader as MQTT
+# import rfid.rfid_read as RFID
+# import RPi.GPIO as GPIO
 from time import sleep
+from datetime import datetime
+import time
 import sqlite3
 
 global dht_temp
@@ -30,23 +32,23 @@ can_send_email = True
 waiting_on_response = False
 fan_state = "fanOff"
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
+# GPIO.setmode(GPIO.BCM)
+# GPIO.setwarnings(False)
 
 # List all pins for sensor (James)
-sensor_pins = [18]
-led_pin = 13
+# sensor_pins = [18]
+# led_pin = 13
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 
-motor_pins = [22, 27, 17]
-GPIO.setup(motor_pins[0],GPIO.OUT)
-GPIO.setup(motor_pins[1],GPIO.OUT)
-GPIO.setup(motor_pins[2],GPIO.OUT)
+# motor_pins = [22, 27, 17]
+# GPIO.setup(motor_pins[0],GPIO.OUT)
+# GPIO.setup(motor_pins[1],GPIO.OUT)
+# GPIO.setup(motor_pins[2],GPIO.OUT)
 
-GPIO.setup(led_pin,GPIO.OUT)
+# GPIO.setup(led_pin,GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
-receiver_email = "@gmail.com"
+receiver_email = "testvanier@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -136,6 +138,7 @@ app.layout = html.Div([
             html.Button(id="saveProfileBtn", n_clicks=0, children="Save Profile")
         ]),
     ]),
+
     # Temperature section
     html.Div(className="container", id="tempHumFan", children=[
         html.Div(className="container", id="tempContainer", children=[
@@ -170,7 +173,8 @@ app.layout = html.Div([
             html.P("fanOff", hidden=True, id="fan_state"),
             html.Img(src=app.get_asset_url("images/spinningFan.png"), id="fan-img", width="250", height="250"),
             html.Button("Turn On", id="fan-control-button", n_clicks=0)
-        ])
+        ]),
+        html.Div(id="email-alert-container"),
     ]),
 
     # Light section
@@ -190,6 +194,12 @@ app.layout = html.Div([
             html.H2("7")
         ])
     ]),
+    html.Div([
+    dbc.Alert(
+        id="email-alert",
+        is_open=False,  # Initialize as closed
+        duration=5000,  # Duration in milliseconds (5 seconds)
+    )]),
     html.Button("Send Test Email", id="send-email-button"),
     html.Div(id="email-status"),
     html.Button("Get User Profile", id="get-user-profile-button"),
@@ -240,6 +250,12 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile):
         if (int(mqtt_light) < int(loaded_user_profile['lightIntensityThreshold'])):
             GPIO.output(led_pin, GPIO.HIGH)
             imgsrc = "assets/images/phase1On.png"
+            # Get current time
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Send notification email
+            subject = "LED Turned On"
+            body = f"The LED was turned on at {current_time}"
+            send_email(subject, body)
         else:
             GPIO.output(led_pin, GPIO.LOW)
     # user_response = check_email_for_user_response()
@@ -341,14 +357,14 @@ def update_fan(fan_state):
     elif fan_state == "fanOn":
         return turnFanOn()
 def turnFanOn():
-    GPIO.output(motor_pins[0],GPIO.HIGH)
-    GPIO.output(motor_pins[1],GPIO.LOW)
-    GPIO.output(motor_pins[2],GPIO.HIGH)
+    # GPIO.output(motor_pins[0],GPIO.HIGH)
+    # GPIO.output(motor_pins[1],GPIO.LOW)
+    # GPIO.output(motor_pins[2],GPIO.HIGH)
     return app.get_asset_url('images/spinningFan.gif'), "Turn Off"
 def turnFanOff():
-    GPIO.output(motor_pins[0],GPIO.LOW)
-    GPIO.output(motor_pins[1],GPIO.LOW)
-    GPIO.output(motor_pins[2],GPIO.LOW)
+    # GPIO.output(motor_pins[0],GPIO.LOW)
+    # GPIO.output(motor_pins[1],GPIO.LOW)
+    # GPIO.output(motor_pins[2],GPIO.LOW)
     return app.get_asset_url('images/spinningFan.png'), "Turn On"
 
 """
@@ -356,6 +372,7 @@ When "Send email" button is clicked, send an email asking to turn the fan on
 """
 @app.callback(
     Output("email-status", "children"),
+    Output("email-alert-container", "children"),
     Input("send-email-button", "n_clicks"),
     prevent_initial_call=True
 )
@@ -364,7 +381,27 @@ def send_test_email(temp):
     subject = "Temperature warning!"
     body = f"The temperature is: {temp} which is greater than 24\n If you wish to turn the fan on reply 'yes' in all caps"
     send_email(subject, body)
-    return "Test email sent."
+    alert = dbc.Alert(
+        [
+            html.H4("Email Sent to User", className="alert-heading"),
+            html.P("An email has been sent to the user to turn on the fan for the temperature"),
+        ],
+        id="email-alert",
+        is_open=True,
+        duration=5000  # Duration in milliseconds (5 seconds)
+    )
+    return "Test email sent.", alert
+
+# Callback to close the alert after 5 seconds
+@app.callback(
+    Output("email-alert", "is_open"),
+    Input("email-status", "children"),
+    Input("email-alert", "id")
+)
+def close_alert(status, alert_id):
+    time.sleep(5)  # Wait for 5 seconds
+    return False
+
 """
 Connect to smtp server and send email
 """
@@ -556,11 +593,11 @@ def email_loop():
 
 
 if __name__ == '__main__':
-    dht_thread = threading.Thread(target=dht_loop)
-    dht_thread.start()
+    # dht_thread = threading.Thread(target=dht_loop)
+    # dht_thread.start()
 
-    mqtt_thread = threading.Thread(target=mqtt_loop)
-    mqtt_thread.start()
+    # mqtt_thread = threading.Thread(target=mqtt_loop)
+    # mqtt_thread.start()
 
     email_thread = threading.Thread(target=email_loop)
     email_thread.start()
