@@ -6,11 +6,11 @@ import imaplib
 import email
 from email.header import decode_header
 import threading
-# import Freenove_DHT as DHT
+import Freenove_DHT as DHT
 import asyncio
-# import Mqtt_Reader as MQTT
-# import rfid.rfid_read as RFID
-# import RPi.GPIO as GPIO
+import Mqtt_Reader as MQTT
+import rfid.rfid_read as RFID
+import RPi.GPIO as GPIO
 from time import sleep
 from datetime import datetime
 import time
@@ -32,20 +32,20 @@ can_send_email = True
 waiting_on_response = False
 fan_state = "fanOff"
 
-# GPIO.setmode(GPIO.BCM)
-# GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 
-# List all pins for sensor (James)
-# sensor_pins = [18]
-# led_pin = 13
+List all pins for sensor (James)
+sensor_pins = [18]
+led_pin = 13
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
 
-# motor_pins = [22, 27, 17]
-# GPIO.setup(motor_pins[0],GPIO.OUT)
-# GPIO.setup(motor_pins[1],GPIO.OUT)
-# GPIO.setup(motor_pins[2],GPIO.OUT)
+motor_pins = [22, 27, 17]
+GPIO.setup(motor_pins[0],GPIO.OUT)
+GPIO.setup(motor_pins[1],GPIO.OUT)
+GPIO.setup(motor_pins[2],GPIO.OUT)
 
-# GPIO.setup(led_pin,GPIO.OUT)
+GPIO.setup(led_pin,GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
 receiver_email = "testvanier@gmail.com"
@@ -197,8 +197,8 @@ app.layout = html.Div([
     html.Div([
     dbc.Alert(
         id="email-alert",
-        is_open=False,  # Initialize as closed
-        duration=5000,  # Duration in milliseconds (5 seconds)
+        is_open=False,
+        duration=5000,
     )]),
     html.Button("Send Test Email", id="send-email-button"),
     html.Div(id="email-status"),
@@ -357,14 +357,14 @@ def update_fan(fan_state):
     elif fan_state == "fanOn":
         return turnFanOn()
 def turnFanOn():
-    # GPIO.output(motor_pins[0],GPIO.HIGH)
-    # GPIO.output(motor_pins[1],GPIO.LOW)
-    # GPIO.output(motor_pins[2],GPIO.HIGH)
+    GPIO.output(motor_pins[0],GPIO.HIGH)
+    GPIO.output(motor_pins[1],GPIO.LOW)
+    GPIO.output(motor_pins[2],GPIO.HIGH)
     return app.get_asset_url('images/spinningFan.gif'), "Turn Off"
 def turnFanOff():
-    # GPIO.output(motor_pins[0],GPIO.LOW)
-    # GPIO.output(motor_pins[1],GPIO.LOW)
-    # GPIO.output(motor_pins[2],GPIO.LOW)
+    GPIO.output(motor_pins[0],GPIO.LOW)
+    GPIO.output(motor_pins[1],GPIO.LOW)
+    GPIO.output(motor_pins[2],GPIO.LOW)
     return app.get_asset_url('images/spinningFan.png'), "Turn On"
 
 """
@@ -388,7 +388,7 @@ def send_test_email(temp):
         ],
         id="email-alert",
         is_open=True,
-        duration=5000  # Duration in milliseconds (5 seconds)
+        duration=5000
     )
     return "Test email sent.", alert
 
@@ -593,11 +593,11 @@ def email_loop():
 
 
 if __name__ == '__main__':
-    # dht_thread = threading.Thread(target=dht_loop)
-    # dht_thread.start()
+    dht_thread = threading.Thread(target=dht_loop)
+    dht_thread.start()
 
-    # mqtt_thread = threading.Thread(target=mqtt_loop)
-    # mqtt_thread.start()
+    mqtt_thread = threading.Thread(target=mqtt_loop)
+    mqtt_thread.start()
 
     email_thread = threading.Thread(target=email_loop)
     email_thread.start()
