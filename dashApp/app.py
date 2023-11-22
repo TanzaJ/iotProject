@@ -9,7 +9,7 @@ import threading
 import Freenove_DHT as DHT
 import asyncio
 import Mqtt_Reader as MQTT
-import rfid.rfid_read as RFID
+# import rfid.rfid_read as RFID
 import RPi.GPIO as GPIO
 from time import sleep
 from datetime import datetime
@@ -23,6 +23,10 @@ global can_send_email
 global waiting_on_response
 global fan_state
 global rfid_id
+global can_send_light_email
+global tempThreshold
+global user_email
+global temp_email_alert
 
 profileChangeSwitch = False
 dht_temp = 0
@@ -31,11 +35,16 @@ mqtt_light = 0
 can_send_email = True
 waiting_on_response = False
 fan_state = "fanOff"
+rfid_id = None
+can_send_light_email = False
+tempThreshold = None
+user_email = None
+temp_email_alert = False
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-List all pins for sensor (James)
+# List all pins for sensor (James)
 sensor_pins = [18]
 led_pin = 13
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
@@ -48,7 +57,7 @@ GPIO.setup(motor_pins[2],GPIO.OUT)
 GPIO.setup(led_pin,GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
-receiver_email = "testvanier@gmail.com"
+# receiver_email = "farouk.assoum123@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -65,7 +74,6 @@ app.layout = html.Div([
     html.Link(rel="preconnect", href="https://fonts.googleapis.com"),
     html.Link(rel="preconnect", href="https://fonts.gstatic.com"),
     html.Link(href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap", rel="stylesheet"),
-    html.Link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css", rel="stylesheet", integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"),
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
     dcc.Interval(id="readSensorsAndEmailInterval", interval=7500),
@@ -101,7 +109,8 @@ app.layout = html.Div([
         ]),
         html.Div(className="container", id="profileDiv2", children=[
             html.H5(style={"font-style": "italic"}, children="Welcome"),
-            dcc.Input(type="text", style={"font-size": "42pt", "font-weight": "bold"}, value="<Username>", id="nameInput")
+            dcc.Input(type="text", style={"font-size": "42pt", "font-weight": "bold"}, value="<Username>", id="nameInput"),
+            dcc.Input(type="text", value="<Email>", id="emailInput")
         ]),
         html.Div(className="container", id="profileDiv3", children=[
             html.H5(style={"font-weight": "600"}, children="Saturday, October 7, 2023"),
@@ -200,10 +209,7 @@ app.layout = html.Div([
         is_open=False,
         duration=5000,
     )]),
-    html.Button("Send Test Email", id="send-email-button"),
     html.Div(id="email-status"),
-    html.Button("Get User Profile", id="get-user-profile-button"),
-    html.Script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js", integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL")
 ])
 
 """
@@ -230,54 +236,88 @@ Else
     Output("humidityHeading", "children"),
     Output("lightNum", "children"),
     Output("lightImg", "src"),
+    Output("loaded-user-profile", "data", allow_duplicate=True),
+    Output("email-alert-container", "children", allow_duplicate=True),
     Input("dht_light_thread_interval", "n_intervals"),
     State("loaded-user-profile", "data"),
+    State("lightImg", "src"),
     prevent_initial_call=True
 )
-def dht_light_thread_update_page(n_intervals, loaded_user_profile):
+def dht_light_thread_update_page(n_intervals, loaded_user_profile, lightImgSrc):
     global dht_temp
     global dht_humidity
     global mqtt_light
     global can_send_email
     global waiting_on_response
     global fan_state
+    global rfid_id
+    global can_send_light_email
+    global tempThreshold
+    global user_email
+    global temp_email_alert
 
-    imgsrc = "assets/images/phase1Off.png"
+    alert = no_update
+    if (temp_email_alert):
+        alert = dbc.Alert(
+        [
+            html.H4("Email Sent to User", className="alert-heading"),
+            html.P("An email has been sent to the user to turn on the fan for the temperature"),
+        ],
+        id="email-alert",
+        is_open=True,
+        duration=5000
+        )
+        temp_email_alert = False
+
+    imgsrc = no_update
     if (loaded_user_profile is not None):
+        tempThreshold = loaded_user_profile['tempThreshold']
+        user_email = loaded_user_profile['email']
         if (float(dht_temp) > float(loaded_user_profile['tempThreshold']) and can_send_email and not waiting_on_response and fan_state == "fanOff"):
             can_send_email = False
-
-        if (int(mqtt_light) < int(loaded_user_profile['lightIntensityThreshold'])):
+        if (int(mqtt_light) < int(loaded_user_profile['lightIntensityThreshold']) and lightImgSrc == "assets/images/phase1Off.png"):
             GPIO.output(led_pin, GPIO.HIGH)
             imgsrc = "assets/images/phase1On.png"
-            # Get current time
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            # Send notification email
-            subject = "LED Turned On"
-            body = f"The LED was turned on at {current_time}"
-            send_email(subject, body)
-        else:
+            can_send_light_email = True
+            # # Get current time
+            # current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # # Send notification email
+            # subject = "LED Turned On"
+            # body = f"The LED was turned on at {current_time}"
+            # send_email(subject, body)
+        if (int(mqtt_light) > int(loaded_user_profile['lightIntensityThreshold']) and lightImgSrc == "assets/images/phase1On.png"):
             GPIO.output(led_pin, GPIO.LOW)
+            imgsrc = "assets/images/phase1Off.png"
     # user_response = check_email_for_user_response()
     # if (user_response != "fanOn"):
     #     user_response = no_update
-    return fan_state, dht_temp, dht_temp, dht_humidity, dht_humidity, mqtt_light, imgsrc 
+    if (rfid_id is not None and (loaded_user_profile is None or rfid_id != loaded_user_profile['rfidTag'])):
+        loaded_user_profile = get_user_profile(rfid_id)
+    else:
+        loaded_user_profile = no_update
+    # print("returning img src")
+    # print(imgsrc)
+    return fan_state, dht_temp, dht_temp, dht_humidity, dht_humidity, mqtt_light, imgsrc, loaded_user_profile, alert
 
 """
 When "Get user profile" button is clicked, get user's profile from database and store it in dcc.store
 """
-@app.callback(
-    Output("loaded-user-profile", "data"),
-    Input("get-user-profile-button", "n_clicks"),
-    prevent_initial_call=True
-)
-def get_user_profile(n_clicks):
+# @app.callback(
+#     Output("loaded-user-profile", "data"),
+#     Input("get-user-profile-button", "n_clicks"),
+#     prevent_initial_call=True
+# )
+def get_user_profile(rfid_id):
     con = sqlite3.connect("profiles_db.db")
     cur = con.cursor()
-    res = cur.execute("SELECT * FROM Profile WHERE UserID = 1")
+    res = cur.execute("SELECT * FROM Profile WHERE RfidTag = '" + rfid_id + "'")
     profile = res.fetchone()
-    return {'userID': profile[0], 'name': profile[1], 'tempThreshold': profile[2], 'humidityThreshold': profile[3], 'lightIntensityThreshold': profile[4], 'profilePic': profile[5]}
-    
+    if (profile is not None):
+        return {'userID': profile[0], 'name': profile[1], 'tempThreshold': profile[2], 'humidityThreshold': profile[3], 'lightIntensityThreshold': profile[4], 'profilePic': profile[5], 'rfidTag': profile[6], 'email': profile[7]}
+    cur.execute("INSERT INTO Profile(Name, TempThreshold, HumidityThreshold, LightIntensityThreshold, ProfilePic, RfidTag, Email) VALUES('<Insert Name Here>', 25, 50, 500, 'https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg', '" + rfid_id + "', '<Insert Email Here>')")
+    con.commit()
+    print("inserted")
+    return get_user_profile(rfid_id)
     
 """
 When "Save Profile" button is clicked, call update_database() and update dcc.store
@@ -290,10 +330,11 @@ When "Save Profile" button is clicked, call update_database() and update dcc.sto
     State("tempInput", "value"),
     State("humidityInput", "value"),
     State("lightIntensityInput", "value"),
+    State("emailInput", "value"),
     prevent_initial_call=True
 )
-def save_preferences(n_clicks, loaded_user_profile, name_value, temp_value, humidity_value, light_intensity_value):
-    updated_user_profile = {'userID': loaded_user_profile['userID'], 'name': name_value, 'tempThreshold': temp_value, 'humidityThreshold': humidity_value, 'lightIntensityThreshold': light_intensity_value, 'profilePic': loaded_user_profile['profilePic']}
+def save_preferences(n_clicks, loaded_user_profile, name_value, temp_value, humidity_value, light_intensity_value, email_value):
+    updated_user_profile = {'userID': loaded_user_profile['userID'], 'name': name_value, 'tempThreshold': temp_value, 'humidityThreshold': humidity_value, 'lightIntensityThreshold': light_intensity_value, 'profilePic': loaded_user_profile['profilePic'], 'rfidTag': loaded_user_profile['rfidTag'], 'email': email_value}
     update_database(updated_user_profile)
     return updated_user_profile
 """
@@ -302,8 +343,8 @@ Update current user's profile in database
 def update_database(updated_user_profile):
     con = sqlite3.connect("profiles_db.db")
     cur = con.cursor()
-    cur.execute("UPDATE Profile SET name=?, TempThreshold=?, HumidityThreshold=?, LightIntensityThreshold=?, ProfilePic=? WHERE UserID=?",
-                (updated_user_profile['name'], updated_user_profile['tempThreshold'], updated_user_profile['humidityThreshold'], updated_user_profile['lightIntensityThreshold'], updated_user_profile['profilePic'], updated_user_profile['userID']))
+    cur.execute("UPDATE Profile SET name=?, TempThreshold=?, HumidityThreshold=?, LightIntensityThreshold=?, ProfilePic=?, Email=? WHERE UserID=?",
+                (updated_user_profile['name'], updated_user_profile['tempThreshold'], updated_user_profile['humidityThreshold'], updated_user_profile['lightIntensityThreshold'], updated_user_profile['profilePic'], updated_user_profile['email'], updated_user_profile['userID']))
     con.commit()
     con.close()
     return  # Reset the button click count
@@ -317,13 +358,14 @@ When dcc.store is updated, load all the profile values into all the fields
     Output("humidityInput", "value"),
     Output("lightIntensityInput", "value"),
     Output("profilepic", "src"),
+    Output("emailInput", "value"),
     Input("loaded-user-profile", "data"),  # Use a store to store preferences
     prevent_initial_call=True
 )
 def load_user_profile(loaded_user_profile):
     if loaded_user_profile is None:
-        return no_update, no_update, no_update, no_update, no_update
-    return loaded_user_profile['name'], loaded_user_profile['tempThreshold'], loaded_user_profile['humidityThreshold'], loaded_user_profile['lightIntensityThreshold'] , loaded_user_profile['profilePic'] 
+        return no_update, no_update, no_update, no_update, no_update, no_update
+    return loaded_user_profile['name'], loaded_user_profile['tempThreshold'], loaded_user_profile['humidityThreshold'], loaded_user_profile['lightIntensityThreshold'] , loaded_user_profile['profilePic'], loaded_user_profile['email']
 
 """
 When the "Fan control" button is clicked, toggle "Fan state" hidden p
@@ -370,16 +412,17 @@ def turnFanOff():
 """
 When "Send email" button is clicked, send an email asking to turn the fan on
 """
-@app.callback(
-    Output("email-status", "children"),
-    Output("email-alert-container", "children"),
-    Input("send-email-button", "n_clicks"),
-    prevent_initial_call=True
-)
+# @app.callback(
+#     Output("email-status", "children"),
+#     Output("email-alert-container", "children"),
+#     Input("send-email-button", "n_clicks"),
+#     prevent_initial_call=True
+# )
 def send_test_email(temp):
+    global tempThreshold
     # Manually send a test email
     subject = "Temperature warning!"
-    body = f"The temperature is: {temp} which is greater than 24\n If you wish to turn the fan on reply 'yes' in all caps"
+    body = f"The temperature is: {temp} which is greater than {tempThreshold}\n If you wish to turn the fan on reply 'yes' in all caps"
     send_email(subject, body)
     alert = dbc.Alert(
         [
@@ -406,12 +449,13 @@ def close_alert(status, alert_id):
 Connect to smtp server and send email
 """
 def send_email(subject, body):
+    global user_email
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, password)
             message = f"Subject: {subject}\n\n{body}"
-            server.sendmail(sender_email, receiver_email, message)
+            server.sendmail(sender_email, user_email, message)
         print("Email sent successfully.")
     except Exception as e:
         print("Email could not be sent. Error:", str(e))
@@ -539,13 +583,13 @@ def mqtt_loop():
         
     def on_message_rfid(client, userdata, message):
         global rfid_id
-        rfid_id = int(message.payload.decode("utf-8"))
+        rfid_id = message.payload.decode("utf-8")
         print(rfid_id)
 
     port = 1883
     mqtt_topic = "LightData"
     mqtt_topic_rfid = "RfidData"
-    mqtt_broker_ip = "192.168.0.116"
+    mqtt_broker_ip = "192.168.74.113"
     client = mqtt.Client("Light Reader")
     client.on_message = on_message
     client.connect(mqtt_broker_ip, port=port)
@@ -581,10 +625,22 @@ def email_loop():
     global can_send_email
     global waiting_on_response
     global dht_temp
+    global can_send_light_email
+    global temp_email_alert
 
     while True:
+        if (can_send_light_email):
+            # Get current time
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Send notification email
+            subject = "LED Turned On"
+            body = f"The LED was turned on at {current_time}"
+            send_email(subject, body)
+            can_send_light_email = False
+            sleep(2)
         if (can_send_email != True and waiting_on_response != True):
             send_test_email(dht_temp)
+            temp_email_alert = True
             can_send_email = True
             waiting_on_response = True
         if (can_send_email and waiting_on_response):
