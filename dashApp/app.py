@@ -15,6 +15,7 @@ from time import sleep
 from datetime import datetime
 import time
 import sqlite3
+import datetime
 
 global dht_temp
 global dht_humidity
@@ -27,6 +28,9 @@ global can_send_light_email
 global tempThreshold
 global user_email
 global temp_email_alert
+global months 
+
+months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 profileChangeSwitch = False
 dht_temp = 0
@@ -44,7 +48,7 @@ temp_email_alert = False
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-# List all pins for sensor (James)
+# List all pins for sensor
 sensor_pins = [18]
 led_pin = 13
 sensor_data = dict.fromkeys(["temperature", "humidity", "light"], None)
@@ -76,8 +80,7 @@ app.layout = html.Div([
     html.Link(href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap", rel="stylesheet"),
     html.Script(src="assets/script.js"),
     html.Script(src="assets/pureknob.js"),
-    dcc.Interval(id="readSensorsAndEmailInterval", interval=7500),
-    dcc.Interval(id="dht_light_thread_interval", interval=1000),
+    dcc.Interval(id="dht_light_thread_interval", interval=7500),
     dcc.Store(id='loaded-user-profile', storage_type='session'),
     # User preference section
     html.Div(className="container", id="profile", children=[
@@ -113,9 +116,10 @@ app.layout = html.Div([
             dcc.Input(type="text", value="<Email>", id="emailInput")
         ]),
         html.Div(className="container", id="profileDiv3", children=[
-            html.H5(style={"font-weight": "600"}, children="Saturday, October 7, 2023"),
-            html.H1(style={"font-size": "48pt"}, children="12:12PM")
+            html.H5(style={"font-weight": "600"}, id="date", children="Saturday, October 7, 2023"),
+            html.H1(style={"font-size": "28pt"}, id="time", children="12:12PM")
         ]),
+        
         html.Div(className="container", id="profileDiv4", children=[
             html.H5(style={"font-style": "italic"}, children="Preferences"),
             html.Div(id="preferencesForm", children=[
@@ -238,6 +242,8 @@ Else
     Output("lightImg", "src"),
     Output("loaded-user-profile", "data", allow_duplicate=True),
     Output("email-alert-container", "children", allow_duplicate=True),
+    Output("date", "children"),
+    Output("time", "children"),
     Input("dht_light_thread_interval", "n_intervals"),
     State("loaded-user-profile", "data"),
     State("lightImg", "src"),
@@ -255,6 +261,7 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile, lightImgSrc):
     global tempThreshold
     global user_email
     global temp_email_alert
+    global months
 
     alert = no_update
     if (temp_email_alert):
@@ -297,7 +304,11 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile, lightImgSrc):
         loaded_user_profile = no_update
     # print("returning img src")
     # print(imgsrc)
-    return fan_state, dht_temp, dht_temp, dht_humidity, dht_humidity, mqtt_light, imgsrc, loaded_user_profile, alert
+        
+    current_time = datetime.datetime.now()
+    dateFinal = months[current_time.month - 1] + ", " + str(current_time.day) + ", " + str(current_time.year)
+    timeFinal = str(current_time.hour) + " : " + str(current_time.minute)
+    return fan_state, dht_temp, dht_temp, dht_humidity, dht_humidity, mqtt_light, imgsrc, loaded_user_profile, alert, timeFinal, dateFinal
 
 """
 When "Get user profile" button is clicked, get user's profile from database and store it in dcc.store
@@ -589,7 +600,7 @@ def mqtt_loop():
     port = 1883
     mqtt_topic = "LightData"
     mqtt_topic_rfid = "RfidData"
-    mqtt_broker_ip = "192.168.74.113"
+    mqtt_broker_ip = "192.168.0.116"
     client = mqtt.Client("Light Reader")
     client.on_message = on_message
     client.connect(mqtt_broker_ip, port=port)
