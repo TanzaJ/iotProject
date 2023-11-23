@@ -190,7 +190,6 @@ app.layout = html.Div([
         html.Img(src="assets/images/phone.png", id="devicesImg"),
         html.Div(id="devicesText", children=[
             html.H2("Wireless Devices Nearby"),
-            dcc.Interval(id='dummy-interval', interval=1000),
             html.Div(id='bluetoothDeviceCount')
         ])
     ]),
@@ -201,31 +200,15 @@ app.layout = html.Div([
 ])
 # Add a function to detect nearby Bluetooth devices
 def detect_bluetooth_devices():
+    global bluetooth_device_count
     try:
-        nearby_devices = bluetooth.discover_devices(duration=8, lookup_names=True)
-        bluetooth_device_count = len(nearby_devices)
-        return bluetooth_device_count
+        while True:
+            nearby_devices = bluetooth.discover_devices()
+            bluetooth_device_count = len(nearby_devices)
     except Exception as e:
         print(f"Error discovering devices: {e}")
-        return 0
+        bluetooth_device_count = 0
 
-def update_bluetooth_device_count():
-    global bluetooth_device_count
-    while True:
-        device_count = detect_bluetooth_devices()
-        bluetooth_device_count = device_count
-
-# Start the Bluetooth discovery process in a separate thread
-bluetooth_thread = threading.Thread(target=update_bluetooth_device_count)
-bluetooth_thread.daemon = True
-bluetooth_thread.start()
-
-@app.callback(
-    Output("bluetoothDeviceCount", "children"),
-    Input("dummy-interval", "n_intervals"),
-)
-def display_bluetooth_device_count(n_intervals):
-    return bluetooth_device_count
 """
 Updates:
 Temperature Gauge
@@ -250,6 +233,7 @@ Else
     Output("humidityHeading", "children"),
     Output("lightNum", "children"),
     Output("lightImg", "src"),
+    Output("bluetoothDeviceCount", "children"),
     Input("dht_light_thread_interval", "n_intervals"),
     State("loaded-user-profile", "data"),
     prevent_initial_call=True
@@ -261,6 +245,7 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile):
     global can_send_email
     global waiting_on_response
     global fan_state
+    global bluetooth_device_count
 
     imgsrc = "assets/images/phase1Off.png"
     if (loaded_user_profile is not None):
@@ -275,7 +260,7 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile):
     # user_response = check_email_for_user_response()
     # if (user_response != "fanOn"):
     #     user_response = no_update
-    return fan_state, dht_temp, dht_temp, dht_humidity, dht_humidity, mqtt_light, imgsrc 
+    return fan_state, dht_temp, dht_temp, dht_humidity, dht_humidity, mqtt_light, imgsrc, str(bluetooth_device_count)
 
 """
 When "Get user profile" button is clicked, get user's profile from database and store it in dcc.store
@@ -594,5 +579,8 @@ if __name__ == '__main__':
 
     email_thread = threading.Thread(target=email_loop)
     email_thread.start()
+    # Start the Bluetooth discovery process in a separate thread
+    bluetooth_thread = threading.Thread(target=detect_bluetooth_devices)
+    bluetooth_thread.start()
 
     app.run(debug=True)
