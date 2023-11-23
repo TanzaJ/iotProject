@@ -8,11 +8,12 @@ from email.header import decode_header
 import threading
 import Freenove_DHT as DHT
 import asyncio
-import Mqtt_Reader as MQTT
-import rfid.rfid_read as RFID
+# import Mqtt_Reader as MQTT
+# import rfid.rfid_read as RFID
 import RPi.GPIO as GPIO
 from time import sleep
 import sqlite3
+import bluetooth
 
 global dht_temp
 global dht_humidity
@@ -21,6 +22,7 @@ global can_send_email
 global waiting_on_response
 global fan_state
 global rfid_id
+global bluetooth_device_count
 
 profileChangeSwitch = False
 dht_temp = 0
@@ -29,6 +31,7 @@ mqtt_light = 0
 can_send_email = True
 waiting_on_response = False
 fan_state = "fanOff"
+bluetooth_device_count = 0
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -46,7 +49,7 @@ GPIO.setup(motor_pins[2],GPIO.OUT)
 GPIO.setup(led_pin,GPIO.OUT)
 
 sender_email = "testvanier@gmail.com"
-receiver_email = "@gmail.com"
+receiver_email = "testvanier@gmail.com"
 password = "hmpz ofwn qxfn byjq"
 
 app = Dash(__name__)
@@ -187,7 +190,8 @@ app.layout = html.Div([
         html.Img(src="assets/images/phone.png", id="devicesImg"),
         html.Div(id="devicesText", children=[
             html.H2("Wireless Devices Nearby"),
-            html.H2("7")
+            dcc.Interval(id='dummy-interval', interval=1000),
+            html.Div(id='bluetoothDeviceCount')
         ])
     ]),
     html.Button("Send Test Email", id="send-email-button"),
@@ -195,7 +199,33 @@ app.layout = html.Div([
     html.Button("Get User Profile", id="get-user-profile-button"),
     html.Script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js", integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL")
 ])
+# Add a function to detect nearby Bluetooth devices
+def detect_bluetooth_devices():
+    try:
+        nearby_devices = bluetooth.discover_devices(duration=8, lookup_names=True)
+        bluetooth_device_count = len(nearby_devices)
+        return bluetooth_device_count
+    except Exception as e:
+        print(f"Error discovering devices: {e}")
+        return 0
 
+def update_bluetooth_device_count():
+    global bluetooth_device_count
+    while True:
+        device_count = detect_bluetooth_devices()
+        bluetooth_device_count = device_count
+
+# Start the Bluetooth discovery process in a separate thread
+bluetooth_thread = threading.Thread(target=update_bluetooth_device_count)
+bluetooth_thread.daemon = True
+bluetooth_thread.start()
+
+@app.callback(
+    Output("bluetoothDeviceCount", "children"),
+    Input("dummy-interval", "n_intervals"),
+)
+def display_bluetooth_device_count(n_intervals):
+    return bluetooth_device_count
 """
 Updates:
 Temperature Gauge
