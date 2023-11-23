@@ -61,7 +61,7 @@ h5 {
   width: 12%;
 }
 
-#nameInput {
+#nameInput, #emailInput {
   background-color: transparent;
   border: none;
 }
