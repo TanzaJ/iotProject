@@ -5,7 +5,7 @@ const char* password = "alloallo1";
 //const char* ssid = "TP-LINK_Guest_B043";
 //const char* password = "63260588";
 
-const char* mqtt_server = "192.168.74.113";
+const char* mqtt_server = "192.168.42.113";
 WiFiClient vanieriot;
 PubSubClient client(vanieriot);
 
@@ -124,9 +124,9 @@ void loop() {
   Serial.println("Light intensity is: ");
   Serial.println (value);
   client.publish("LightData", data);
-  if (decNUID != "none") {
-    Serial.println("RFID NUID is: ");
-    Serial.println (decNUID);
+  Serial.println("RFID NUID is: ");
+  Serial.println (decNUID);
+  if (decNUID != "none") {   
     client.publish("RfidData", rfidData);
   }
   Serial.println ("published");  
