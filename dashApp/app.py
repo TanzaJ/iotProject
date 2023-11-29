@@ -16,6 +16,7 @@ from datetime import datetime
 import time
 import sqlite3
 import bluetooth
+import re
 
 global dht_temp
 global dht_humidity
@@ -281,7 +282,7 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile, lightImgSrc):
         ],
         id="email-alert",
         is_open=True,
-        duration=5000
+        duration=10000
         )
         temp_email_alert = False
 
@@ -300,6 +301,8 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile, lightImgSrc):
             GPIO.output(led_pin, GPIO.LOW)
             imgsrc = "assets/images/phase1Off.png"
     if (rfid_id is not None and (loaded_user_profile is None or rfid_id != loaded_user_profile['rfidTag'])):
+        can_send_email = True
+        waiting_on_response = False
         loaded_user_profile = get_user_profile(rfid_id)
     else:
         loaded_user_profile = no_update
@@ -326,7 +329,7 @@ def get_user_profile(rfid_id):
     profile = res.fetchone()
     if (profile is not None):
         return {'userID': profile[0], 'name': profile[1], 'tempThreshold': profile[2], 'humidityThreshold': profile[3], 'lightIntensityThreshold': profile[4], 'profilePic': profile[5], 'rfidTag': profile[6], 'email': profile[7]}
-    cur.execute("INSERT INTO Profile(Name, TempThreshold, HumidityThreshold, LightIntensityThreshold, ProfilePic, RfidTag, Email) VALUES('<Insert Name Here>', 25, 50, 500, 'https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg', '" + rfid_id + "', '<Insert Email Here>')")
+    cur.execute("INSERT INTO Profile(Name, TempThreshold, HumidityThreshold, LightIntensityThreshold, ProfilePic, RfidTag, Email) VALUES('<Insert Name Here>', 25, 50, 500, 'https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg', '" + rfid_id + "', 'youremail@example.com')")
     con.commit()
     print("inserted")
     return get_user_profile(rfid_id)
@@ -337,6 +340,7 @@ When "Save Profile" button is clicked, call update_database() and update dcc.sto
 """
 @app.callback(
     Output("loaded-user-profile", "data", allow_duplicate = True),  # Use a store to store preferences
+    Output("email-alert-container", "children", allow_duplicate=True),
     Input("saveProfileBtn", "n_clicks"),
     State("loaded-user-profile", "data"),  # Use a store to store preferences
     State("nameInput", "value"),
@@ -347,9 +351,55 @@ When "Save Profile" button is clicked, call update_database() and update dcc.sto
     prevent_initial_call=True
 )
 def save_preferences(n_clicks, loaded_user_profile, name_value, temp_value, humidity_value, light_intensity_value, email_value):
-    updated_user_profile = {'userID': loaded_user_profile['userID'], 'name': name_value, 'tempThreshold': temp_value, 'humidityThreshold': humidity_value, 'lightIntensityThreshold': light_intensity_value, 'profilePic': loaded_user_profile['profilePic'], 'rfidTag': loaded_user_profile['rfidTag'], 'email': email_value}
-    update_database(updated_user_profile)
-    return updated_user_profile
+    global waiting_on_response
+    if (loaded_user_profile is not None):
+        try:
+            temp_value = int(temp_value)
+            humidity_value = int(humidity_value)
+            light_intensity_value = int(light_intensity_value)
+            email_validate_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
+            is_email_valid = re.fullmatch(email_validate_pattern, email_value)
+            if (not is_email_valid):
+                raise TypeError("invalid email")
+            if (loaded_user_profile['email'] != email_value):
+                waiting_on_response = False
+        except:
+            alert = dbc.Alert(
+            [
+                html.H4("Could not save profile", className="alert-heading"),
+                html.P("One or more invalid fields"),
+            ],
+            id="email-alert",
+            is_open=True,
+            duration=5000
+            )
+            temp_email_alert = False
+            return no_update, alert
+        updated_user_profile = {'userID': loaded_user_profile['userID'], 'name': name_value, 'tempThreshold': temp_value, 'humidityThreshold': humidity_value, 'lightIntensityThreshold': light_intensity_value, 'profilePic': loaded_user_profile['profilePic'], 'rfidTag': loaded_user_profile['rfidTag'], 'email': email_value}
+        update_database(updated_user_profile)
+        alert = dbc.Alert(
+        [
+            html.H4("Profile Successfully Updated", className="alert-heading"),
+        ],
+        id="email-alert",
+        is_open=True,
+        duration=5000
+        )
+        temp_email_alert = False
+        return updated_user_profile, alert
+    else:
+        alert = dbc.Alert(
+        [
+            html.H4("Couldn't Save Profile", className="alert-heading"),
+            html.P("There is no loaded profile to save to"),
+        ],
+        id="email-alert",
+        is_open=True,
+        duration=5000
+        )
+        temp_email_alert = False
+        return no_update, alert
+
 """
 Update current user's profile in database
 """
@@ -443,7 +493,7 @@ def send_test_email(temp):
         ],
         id="email-alert",
         is_open=True,
-        duration=5000
+        duration=10000
     )
     return "Test email sent.", alert
 
@@ -482,6 +532,7 @@ def check_email_for_user_response():
     global can_send_email
     global waiting_on_response
     global fan_state
+    global user_email
     try:
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(sender_email, password)
@@ -510,6 +561,9 @@ def check_email_for_user_response():
 
                         first_word = email_body.strip().split()[0]
 
+                        if user_email not in msg["From"]:
+                            return
+
                         waiting_on_response = False
                         if first_word.upper() == "YES":
                             print("Received 'YES' response. Turning on the fan...")
@@ -526,6 +580,7 @@ def check_email_for_user_response():
     Output("modal", "is_open"),
     Output("pfp_src_input", "value"),
     Output("loaded-user-profile", "data", allow_duplicate = True),
+    Output("email-alert-container", "children", allow_duplicate=True),
     Input("profilepicedit", "n_clicks"),
     Input("savePfpBtn", "n_clicks"),
     Input("closePopupBtn", "n_clicks"),
@@ -535,15 +590,28 @@ def check_email_for_user_response():
     prevent_initial_call=True
 )
 def clicked_profile_pic(n_clicks1, n_clicks2, n_clicks3, loaded_user_profile, pfp_src_input, is_open):
+    if (loaded_user_profile is None):
+        alert = dbc.Alert(
+        [
+            html.H4("Can't Update Profile Picture", className="alert-heading"),
+            html.P("There is no loaded profile to save to"),
+        ],
+        id="email-alert",
+        is_open=True,
+        duration=10000
+        )
+        temp_email_alert = False
+        return False, no_update, no_update, alert
+
     if (is_open):
         if ctx.triggered_id == "closePopupBtn":
-            return False, no_update, no_update
+            return False, no_update, no_update, no_update
         if ctx.triggered_id == "savePfpBtn":
             loaded_user_profile['profilePic'] = pfp_src_input
             update_database(loaded_user_profile)
-            return False, no_update, loaded_user_profile
+            return False, no_update, loaded_user_profile, no_update
     else:
-        return True, loaded_user_profile['profilePic'], no_update
+        return True, loaded_user_profile['profilePic'], no_update, no_update
     
     # if ctx.triggered_id == "profilepicedit":
     #     return True, loaded_user_profile['profilePic'], no_update
