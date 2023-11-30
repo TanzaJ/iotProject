@@ -31,6 +31,7 @@ global tempThreshold
 global user_email
 global temp_email_alert
 global months 
+global send_signed_in_email
 
 profileChangeSwitch = False
 dht_temp = 0
@@ -45,6 +46,7 @@ can_send_light_email = False
 tempThreshold = None
 user_email = None
 temp_email_alert = False
+send_signed_in_email = False
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -272,6 +274,7 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile, lightImgSrc):
     global user_email
     global temp_email_alert
     global months
+    global send_signed_in_email
 
     alert = no_update
     if (temp_email_alert):
@@ -303,6 +306,7 @@ def dht_light_thread_update_page(n_intervals, loaded_user_profile, lightImgSrc):
     if (rfid_id is not None and (loaded_user_profile is None or rfid_id != loaded_user_profile['rfidTag'])):
         can_send_email = True
         waiting_on_response = False
+        send_signed_in_email = True
         loaded_user_profile = get_user_profile(rfid_id)
     else:
         loaded_user_profile = no_update
@@ -327,6 +331,7 @@ def get_user_profile(rfid_id):
     cur = con.cursor()
     res = cur.execute("SELECT * FROM Profile WHERE RfidTag = '" + rfid_id + "'")
     profile = res.fetchone()
+    print(profile)
     if (profile is not None):
         return {'userID': profile[0], 'name': profile[1], 'tempThreshold': profile[2], 'humidityThreshold': profile[3], 'lightIntensityThreshold': profile[4], 'profilePic': profile[5], 'rfidTag': profile[6], 'email': profile[7]}
     cur.execute("INSERT INTO Profile(Name, TempThreshold, HumidityThreshold, LightIntensityThreshold, ProfilePic, RfidTag, Email) VALUES('<Insert Name Here>', 25, 50, 500, 'https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg', '" + rfid_id + "', 'youremail@example.com')")
@@ -352,6 +357,7 @@ When "Save Profile" button is clicked, call update_database() and update dcc.sto
 )
 def save_preferences(n_clicks, loaded_user_profile, name_value, temp_value, humidity_value, light_intensity_value, email_value):
     global waiting_on_response
+    global send_signed_in_email
     if (loaded_user_profile is not None):
         try:
             temp_value = int(temp_value)
@@ -361,6 +367,8 @@ def save_preferences(n_clicks, loaded_user_profile, name_value, temp_value, humi
             is_email_valid = re.fullmatch(email_validate_pattern, email_value)
             if (not is_email_valid):
                 raise TypeError("invalid email")
+            if (email_value != loaded_user_profile['email']):
+                send_signed_in_email = True
             if (loaded_user_profile['email'] != email_value):
                 waiting_on_response = False
         except:
@@ -707,6 +715,7 @@ def email_loop():
     global dht_temp
     global can_send_light_email
     global temp_email_alert
+    global send_signed_in_email
 
     while True:
         if (can_send_light_email):
@@ -725,6 +734,13 @@ def email_loop():
             waiting_on_response = True
         if (can_send_email and waiting_on_response):
             check_email_for_user_response()
+            sleep(2)
+        if (send_signed_in_email):
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            subject = "Signed in to Dashboard"
+            body = f"You just signed to the Dashboard at {current_time}"
+            send_email(subject, body)
+            send_signed_in_email = False
             sleep(2)
 
 
